@@ -4,6 +4,7 @@
     import type { Fighter } from '$lib/ml/algorithms';
     import { CombatEngine } from '$lib/ml/combat';
     import DatasetUpload from './DatasetUpload.svelte';
+    import Pokedex from '../pokedex/Pokedex.svelte';
 
     let canvas: HTMLCanvasElement;
     let ctx: CanvasRenderingContext2D | null = null;
@@ -20,6 +21,7 @@
     let currentDataset: any = null;
     let datasetAnalysis: any = null;
     let showDatasetUpload = true;
+    let showPokedex = false;
 
     // Available algorithms
     const availableAlgorithms = [
@@ -60,6 +62,29 @@
 
     function handleReadyForBattle() {
         // Dataset is ready, user can now select fighters
+    }
+
+    function openPokedex() {
+        showPokedex = true;
+    }
+
+    function closePokedex() {
+        showPokedex = false;
+    }
+
+    function useAlgorithmFromPokedex(event: CustomEvent) {
+        const { algorithmName } = event.detail;
+        // Find the algorithm config
+        const algo = availableAlgorithms.find(a => a.name === algorithmName);
+        if (algo && currentDataset) {
+            // Auto-select as fighter 1 if empty, otherwise fighter 2
+            if (!fighter1) {
+                selectFighter(1, algo);
+            } else if (!fighter2) {
+                selectFighter(2, algo);
+            }
+        }
+        closePokedex();
     }
 
     function backToDatasetUpload() {
@@ -244,6 +269,9 @@
                 <button class="back-button" on:click={backToDatasetUpload}>
                     ← Back to Dataset
                 </button>
+                <button class="pokedex-button" on:click={openPokedex}>
+                    📖 Pokedex
+                </button>
                 <div class="current-dataset">
                     📊 {datasetAnalysis?.name} (Level {datasetAnalysis?.difficulty})
                 </div>
@@ -357,6 +385,14 @@
     </div>
 {/if}
 
+<!-- Pokedex Modal -->
+{#if showPokedex}
+    <Pokedex
+            on:close={closePokedex}
+            on:use-in-battle={useAlgorithmFromPokedex}
+    />
+{/if}
+
 <style>
     .dataset-phase {
         max-width: 800px;
@@ -410,6 +446,27 @@
     .back-button:hover {
         background: #444;
         transform: translateX(-2px);
+    }
+
+    .pokedex-button {
+        background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: inherit;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .pokedex-button:hover {
+        background: linear-gradient(45deg, #45b7d1, #4ecdc4);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
     }
 
     .current-dataset {
