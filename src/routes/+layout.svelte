@@ -1,7 +1,6 @@
-<script lang="ts">
-	import '../app.css';
-	
-	let { children } = $props();
+<!-- @file src/routes/+layout.svelte -->
+<script>
+    import '../app.css';
 </script>
 
-{@render children()}
+<slot />
