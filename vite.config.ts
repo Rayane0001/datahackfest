@@ -1,9 +1,18 @@
+// @file vite.config.js
+
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	optimizeDeps: {
+		include: ['papaparse'],
+		exclude: []
+	},
+	define: {
+		global: 'globalThis',
+	},
 	test: {
 		projects: [
 			{

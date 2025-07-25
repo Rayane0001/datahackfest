@@ -68,7 +68,7 @@ export const ALGORITHM_CONFIGS: Record<string, AlgorithmConfig> = {
         weaknesses: ['Requires lots of data', 'Training time', 'Black box']
     },
 
-    'SVM': {
+    'Support Vector Machine': {
         name: 'Support Vector Machine',
         type: 'svm',
         color: '#ef4444',
@@ -100,7 +100,7 @@ export const ALGORITHM_CONFIGS: Record<string, AlgorithmConfig> = {
         weaknesses: ['Overfitting risk', 'Sensitive to outliers', 'Training time']
     },
 
-    'K-Means': {
+    'K-Means Clustering': {
         name: 'K-Means Clustering',
         type: 'kmeans',
         color: '#8b5cf6',

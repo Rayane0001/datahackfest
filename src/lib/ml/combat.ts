@@ -75,21 +75,153 @@ export class CombatEngine {
         }
     }
 
-    async createFighter(algorithmName: string, color: string, type: string): Promise<Fighter> {
+    async createFighterFromDataset(algorithmName: string, color: string, type: string, dataset: any[]): Promise<Fighter> {
         if (!this.isInitialized) {
             // Fallback to basic fighter creation
             return FighterFactory.createFighter(algorithmName);
         }
 
         try {
-            // Generate a test dataset and train the algorithm
-            const performanceMetrics = await this.trainAndEvaluate(algorithmName);
+            // Train algorithm on the provided dataset and get performance metrics
+            const performanceMetrics = await this.trainOnDataset(algorithmName, dataset);
             return FighterFactory.createFighter(algorithmName, performanceMetrics);
         } catch (error) {
-            console.error(`Failed to train ${algorithmName}:`, error);
+            console.error(`Failed to train ${algorithmName} on dataset:`, error);
             // Fallback to basic fighter creation
             return FighterFactory.createFighter(algorithmName);
         }
+    }
+
+    private async trainOnDataset(algorithmName: string, dataset: any[]): Promise<any> {
+        if (!dataset || dataset.length === 0) {
+            throw new Error('Dataset is empty');
+        }
+
+        // Prepare data for Python
+        const features = Object.keys(dataset[0]).slice(0, -1); // All columns except last
+        const targetColumn = Object.keys(dataset[0]).slice(-1)[0]; // Last column as target
+
+        const X = dataset.map(row => features.map(feature => {
+            const value = row[feature];
+            return typeof value === 'number' ? value : (typeof value === 'string' ? value.length : 0);
+        }));
+
+        const y = dataset.map(row => {
+            const value = row[targetColumn];
+            return typeof value === 'number' ? value : (typeof value === 'string' ? value.charCodeAt(0) % 10 : 0);
+        });
+
+        const pythonCode = `
+# Suppress warnings for cleaner output
+import warnings
+warnings.filterwarnings('ignore')
+
+# Prepare the dataset
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import time
+
+# Convert JavaScript arrays to numpy arrays
+X = np.array(${JSON.stringify(X)})
+y = np.array(${JSON.stringify(y)})
+
+# Handle potential issues with data
+X = np.nan_to_num(X)
+y = np.nan_to_num(y)
+
+# Split the data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Scale features for algorithms that need it
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Initialize algorithm
+algorithm_name = "${algorithmName}"
+start_time = time.time()
+
+if algorithm_name == "Random Forest":
+    from sklearn.ensemble import RandomForestClassifier
+    model = RandomForestClassifier(n_estimators=50, random_state=42, max_depth=10)
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+elif algorithm_name == "Neural Network":
+    from sklearn.neural_network import MLPClassifier
+    model = MLPClassifier(hidden_layer_sizes=(50,), max_iter=200, random_state=42)
+    model.fit(X_train_scaled, y_train)
+    predictions = model.predict(X_test_scaled)
+elif algorithm_name == "Support Vector Machine":
+    from sklearn.svm import SVC
+    model = SVC(kernel='rbf', random_state=42, gamma='scale')
+    model.fit(X_train_scaled, y_train)
+    predictions = model.predict(X_test_scaled)
+elif algorithm_name == "Gradient Boosting":
+    from sklearn.ensemble import GradientBoostingClassifier
+    model = GradientBoostingClassifier(n_estimators=50, random_state=42, max_depth=5)
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+elif algorithm_name == "Naive Bayes":
+    from sklearn.naive_bayes import GaussianNB
+    model = GaussianNB()
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+elif algorithm_name == "K-Means Clustering":
+    from sklearn.cluster import KMeans
+    from sklearn.metrics import silhouette_score
+    model = KMeans(n_clusters=min(5, len(np.unique(y))), random_state=42)
+    model.fit(X_train)
+    predictions = model.predict(X_test)
+    # For clustering, create synthetic accuracy based on silhouette score
+    try:
+        silhouette_avg = silhouette_score(X_test, predictions)
+        accuracy = (silhouette_avg + 1) / 2  # Normalize to 0-1
+    except:
+        accuracy = 0.6  # Fallback
+    precision = accuracy * 0.9
+    recall = accuracy * 0.85
+    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    fit_time = time.time() - start_time
+else:
+    # Default to Random Forest
+    from sklearn.ensemble import RandomForestClassifier
+    model = RandomForestClassifier(n_estimators=50, random_state=42)
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+
+fit_time = time.time() - start_time
+
+# Calculate metrics (except for K-Means which is handled above)
+if algorithm_name != "K-Means Clustering":
+    try:
+        accuracy = accuracy_score(y_test, predictions)
+        precision = precision_score(y_test, predictions, average='weighted', zero_division=0)
+        recall = recall_score(y_test, predictions, average='weighted', zero_division=0)
+        f1 = f1_score(y_test, predictions, average='weighted', zero_division=0)
+    except:
+        # Fallback for regression or other issues
+        accuracy = max(0.5, 1 - np.mean(np.abs(predictions - y_test)) / np.std(y_test)) if np.std(y_test) > 0 else 0.6
+        precision = accuracy * 0.9
+        recall = accuracy * 0.85
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+# Store results
+results[algorithm_name] = {
+    'accuracy': float(max(0.1, min(1.0, accuracy))),
+    'precision': float(max(0.1, min(1.0, precision))),
+    'recall': float(max(0.1, min(1.0, recall))),
+    'f1_score': float(max(0.1, min(1.0, f1))),
+    'fit_time': float(max(0.01, fit_time))
+}
+
+results[algorithm_name]
+		`;
+
+        this.pyodide.runPython(pythonCode);
+        const result = this.pyodide.globals.get('results').get(algorithmName);
+        return result.toJs();
     }
 
     private async trainAndEvaluate(algorithmName: string): Promise<any> {
