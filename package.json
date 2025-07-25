@@ -43,8 +43,10 @@
 	},
 	"dependencies": {
 		"@fontsource/fira-mono": "^5.2.6",
+		"@types/papaparse": "^5.3.16",
 		"d3": "^7.9.0",
 		"lucide-svelte": "^0.525.0",
+		"papaparse": "^5.5.3",
 		"pyodide": "^0.28.0"
 	}
 }
