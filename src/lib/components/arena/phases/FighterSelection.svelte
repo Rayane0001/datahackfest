@@ -4,6 +4,8 @@
     import { getAlgorithmSprites } from '$lib/stores/theme';
     import type { Fighter } from '$lib/ml/algorithms';
     import type { CombatEngine } from '$lib/ml/combat';
+    import { playAudio } from '$lib/stores/audioPlayer';
+
 
     export let combatEngine: CombatEngine;
     export let currentDataset: any;
@@ -45,13 +47,17 @@
                 fighter2 = fighter;
             }
 
-            if (fighter1 && fighter2) {
-                dispatch('fighters-selected', { fighter1, fighter2 });
-            }
+            // Don't auto-advance to next phase
         } catch (error) {
             console.error('Failed to create fighter:', error);
         } finally {
             dispatch('loading', false);
+        }
+    }
+
+    function proceedToBattle() {
+        if (fighter1 && fighter2) {
+            dispatch('fighters-selected', { fighter1, fighter2 });
         }
     }
 
@@ -66,6 +72,15 @@
         <h1>Choose Your Fighters!</h1>
         <p class="subtitle">Select two ML algorithms to battle with your dataset</p>
     </div>
+
+    <!-- Battle Controls -->
+    {#if fighter1 && fighter2}
+        <div class="battle-controls">
+            <button class="proceed-button" on:click={proceedToBattle}>
+                🚀 Proceed to Battle Configuration
+            </button>
+        </div>
+    {/if}
 
     <div class="selection-grid">
         <!-- Player 1 Selection -->
@@ -112,6 +127,9 @@
                             <span>{(fighter1.precision * 100).toFixed(1)}%</span>
                         </div>
                     </div>
+                    <button class="change-fighter-button" on:click={() => fighter1 = null}>
+                        🔄 Change Fighter
+                    </button>
                 </div>
             {:else}
                 <div class="pokemon-selection-grid">
@@ -119,7 +137,7 @@
                         <button
                                 class="pokemon-card"
                                 style="--type-color: {algo.color}"
-                                on:click={() => selectFighter(1, algo)}
+                                on:click={() => {selectFighter(1, algo); playAudio(`/audio/${algo.type}.mp3`, true) }}
                                 disabled={isLoading}
                         >
                             <div class="card-sprite-container">
@@ -194,6 +212,9 @@
                             <span>{(fighter2.precision * 100).toFixed(1)}%</span>
                         </div>
                     </div>
+                    <button class="change-fighter-button" on:click={() => fighter2 = null}>
+                        🔄 Change Fighter
+                    </button>
                 </div>
             {:else}
                 <div class="pokemon-selection-grid">
@@ -626,6 +647,56 @@
     @keyframes bounce {
         0%, 100% { transform: translateY(0); }
         50% { transform: translateY(-20px); }
+    }
+
+    .change-fighter-button {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 15px;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+    }
+
+    .change-fighter-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(220, 38, 38, 0.35);
+    }
+
+    .battle-controls {
+        display: flex;
+        justify-content: center;
+        margin-top: 60px;
+        padding-bottom: 40px;
+    }
+
+    .proceed-button {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        color: white;
+        border: none;
+        padding: 20px 40px;
+        border-radius: 12px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+        animation: readyGlow 2s ease-in-out infinite;
+    }
+
+    .proceed-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+    }
+
+    @keyframes readyGlow {
+        0%, 100% { box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3); }
+        50% { box-shadow: 0 8px 30px rgba(37, 99, 235, 0.5); }
     }
 
     .type-ensemble { background: #2563eb; }

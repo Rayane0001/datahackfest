@@ -4,6 +4,8 @@
     import { getAlgorithmSprites } from '$lib/stores/theme';
     import type { Fighter } from '$lib/ml/algorithms';
     import type { AILevel } from '$lib/ai/combat-ai';
+    import { playAudio } from '$lib/stores/audioPlayer';
+
 
     export let fighter1: Fighter | null;
     export let fighter2: Fighter | null;
@@ -22,6 +24,7 @@
 
     function startBattle() {
         if (!fighter1 || !fighter2) return;
+        playAudio(`/audio/fight.mp3`)
 
         dispatch('battle-start', {
             mode: battleMode,

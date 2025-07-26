@@ -15,6 +15,7 @@
     import { getTypeMultiplier, ALGORITHM_TYPES } from '$lib/data/type-advantages';
     import MoveSelection from './MoveSelection.svelte';
     import StatusEffects from './StatusEffects.svelte';
+    import { playAudio } from '$lib/stores/audioPlayer';
 
     export let playerFighter: Fighter;
     export let aiFighter: Fighter;
@@ -346,7 +347,6 @@
         winner = winnerName;
         showMoveSelection = false;
         animationInProgress = false;
-
         addCombatMessage(generateEndBattleMessage(
             winnerName,
             winnerName === playerFighter.name ? aiFighter.name : playerFighter.name,
