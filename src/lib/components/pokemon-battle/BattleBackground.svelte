@@ -3,6 +3,11 @@
     import { theme, getBackgroundSprites } from '$lib/stores/theme';
 
     $: backgroundSprites = getBackgroundSprites($theme);
+
+    // Force reactivity when theme changes
+    $: if ($theme) {
+        console.log('Theme changed to:', $theme);
+    }
 </script>
 
 <div class="battle-background">
