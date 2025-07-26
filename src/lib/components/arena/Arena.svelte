@@ -69,9 +69,13 @@
     }
 
     function handleBattleEnd() {
-        // Reset to setup phase
-        currentPhase = 'setup';
+        // Keep fighters and stay in same battle mode
         combatLog = [...combatLog, `Battle completed!`];
+    }
+
+    function handleBackToMenu() {
+        // Return to setup phase to choose new battle mode or fighters
+        currentPhase = 'setup';
     }
 
     function handleResetBattle() {
@@ -156,6 +160,7 @@
                     aiFighter={fighter2}
                     aiLevel={selectedAILevel}
                     on:battle-end={handleBattleEnd}
+                    on:back-to-menu={handleBackToMenu}
                     on:reset-battle={handleResetBattle}
             />
         {:else}
@@ -172,6 +177,7 @@
                     aiFighter={fighter2}
                     aiLevel={selectedAILevel}
                     on:battle-end={handleBattleEnd}
+                    on:back-to-menu={handleBackToMenu}
                     on:reset-battle={handleResetBattle}
             />
         {:else}

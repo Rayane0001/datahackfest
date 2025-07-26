@@ -17,9 +17,8 @@
 
     const dispatch = createEventDispatcher();
 
-    if (!playerFighter || !aiFighter) {
-        console.error('Fighters not properly initialized:', { playerFighter, aiFighter });
-    }
+    let battlePlayerFighter: Fighter;
+    let battleAiFighter: Fighter;
 
     let isPlayerTurn = true;
     let currentTurn = 1;
@@ -42,14 +41,63 @@
     let combatAI: CombatAI;
     let aiThinking = false;
 
+    let showMoveTooltip = false;
+    let currentMove: Move | null = null;
+    let tooltipX = 0;
+    let tooltipY = 0;
+
+    let isInitialized = false;
+
     onMount(() => {
-        initializeBattle();
+        if (playerFighter && aiFighter) {
+            resetAndInitializeBattle();
+        }
         theme.init();
     });
 
+    $: if (playerFighter && aiFighter && !isInitialized) {
+        resetAndInitializeBattle();
+    }
+
+    function resetAndInitializeBattle() {
+        if (!playerFighter || !aiFighter) return;
+
+        battlePlayerFighter = {
+            ...playerFighter,
+            health: playerFighter.maxHealth
+        };
+
+        battleAiFighter = {
+            ...aiFighter,
+            health: aiFighter.maxHealth
+        };
+
+        isPlayerTurn = true;
+        currentTurn = 1;
+        battleEnded = false;
+        winner = null;
+        playerAnimating = false;
+        aiAnimating = false;
+        playerAnimationType = 'none';
+        aiAnimationType = 'none';
+        showMoveSelection = false;
+        battleMessage = '';
+        isProcessingTurn = false;
+        aiThinking = false;
+        showMoveTooltip = false;
+        currentMove = null;
+
+        initializeBattle();
+    }
+
     function initializeBattle() {
-        playerMoves = getMovesByAlgorithm(playerFighter.name);
-        aiMoves = getMovesByAlgorithm(aiFighter.name);
+        if (!battlePlayerFighter || !battleAiFighter) return;
+
+        playerMoves = getMovesByAlgorithm(battlePlayerFighter.name);
+        aiMoves = getMovesByAlgorithm(battleAiFighter.name);
+
+        playerPP = {};
+        aiPP = {};
 
         playerMoves.forEach(move => {
             playerPP[move.name] = move.pp;
@@ -59,11 +107,45 @@
         });
 
         combatAI = new CombatAI(aiLevel);
+        isInitialized = true;
         startBattleSequence();
     }
 
+    function handleMoveHover(event: MouseEvent, move: Move) {
+        // Remove hover functionality - now only works on click
+    }
+
+    function handleMoveLeave() {
+        // Remove hover functionality - now only works on click
+    }
+
+    function handleTooltipClick(event: MouseEvent, move: Move) {
+        event.stopPropagation();
+        const rect = (event.target as HTMLElement).getBoundingClientRect();
+
+        if (showMoveTooltip && currentMove === move) {
+            // If clicking the same move tooltip that's already open, close it
+            showMoveTooltip = false;
+            currentMove = null;
+        } else {
+            // Open new tooltip
+            currentMove = move;
+            // Position tooltip in the center-top of screen for better visibility
+            tooltipX = window.innerWidth / 2;
+            tooltipY = 100;
+            showMoveTooltip = true;
+        }
+    }
+
+    function closeTooltip() {
+        showMoveTooltip = false;
+        currentMove = null;
+    }
+
     async function startBattleSequence() {
-        battleMessage = `${aiFighter.name} wants to battle!`;
+        if (!battleAiFighter || !battlePlayerFighter) return;
+
+        battleMessage = `${battleAiFighter.name} wants to battle!`;
 
         aiAnimationType = 'slide-in';
         aiAnimating = true;
@@ -75,7 +157,7 @@
 
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        battleMessage = `Go! ${playerFighter.name}!`;
+        battleMessage = `Go! ${battlePlayerFighter.name}!`;
 
         await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -83,9 +165,11 @@
     }
 
     function startPlayerTurn() {
+        if (!battlePlayerFighter) return;
+
         isPlayerTurn = true;
         showMoveSelection = true;
-        battleMessage = `What will ${playerFighter.name} do?`;
+        battleMessage = `What will ${battlePlayerFighter.name} do?`;
         isProcessingTurn = false;
     }
 
@@ -94,6 +178,7 @@
 
         isProcessingTurn = true;
         showMoveSelection = false;
+        showMoveTooltip = false;
 
         await executePlayerMove(move);
 
@@ -108,7 +193,9 @@
     }
 
     async function executePlayerMove(move: Move) {
-        battleMessage = `${playerFighter.name} used ${move.name}!`;
+        if (!battlePlayerFighter || !battleAiFighter) return;
+
+        battleMessage = `${battlePlayerFighter.name} used ${move.name}!`;
 
         playerAnimationType = 'attack';
         playerAnimating = true;
@@ -117,10 +204,10 @@
 
         playerPP[move.name]--;
 
-        const damage = calculateDamage(playerFighter, aiFighter, move);
+        const damage = calculateDamage(battlePlayerFighter, battleAiFighter, move);
         const effectiveness = getTypeMultiplier(
-            ALGORITHM_TYPES[playerFighter.name],
-            ALGORITHM_TYPES[aiFighter.name]
+            ALGORITHM_TYPES[battlePlayerFighter.name],
+            ALGORITHM_TYPES[battleAiFighter.name]
         );
         const isCritical = Math.random() < 0.1;
         const missed = Math.random() > (move.accuracy / 100);
@@ -128,7 +215,7 @@
         await new Promise(resolve => setTimeout(resolve, 300));
 
         if (missed) {
-            battleMessage = `${playerFighter.name}'s attack missed!`;
+            battleMessage = `${battlePlayerFighter.name}'s attack missed!`;
         } else {
             let finalDamage = damage;
             if (isCritical) {
@@ -138,7 +225,7 @@
             finalDamage *= effectiveness;
             finalDamage = Math.round(finalDamage);
 
-            aiFighter.health = Math.max(0, aiFighter.health - finalDamage);
+            battleAiFighter.health = Math.max(0, battleAiFighter.health - finalDamage);
 
             aiAnimationType = 'damage';
             aiAnimating = true;
@@ -154,29 +241,29 @@
 
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        if (aiFighter.health <= 0) {
+        if (battleAiFighter.health <= 0) {
             aiAnimationType = 'faint';
             aiAnimating = true;
-            battleMessage = `${aiFighter.name} fainted!`;
+            battleMessage = `${battleAiFighter.name} fainted!`;
 
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            endBattle(playerFighter.name);
+            endBattle(battlePlayerFighter.name);
         }
     }
 
     async function executeAITurn() {
-        if (battleEnded) return;
+        if (battleEnded || !battlePlayerFighter || !battleAiFighter) return;
 
         isPlayerTurn = false;
         aiThinking = true;
-        battleMessage = `${aiFighter.name} is thinking...`;
+        battleMessage = `${battleAiFighter.name} is thinking...`;
 
         await new Promise(resolve => setTimeout(resolve, 1500));
 
         const combatState: CombatState = {
-            playerFighter,
-            aiFighter,
+            playerFighter: battlePlayerFighter,
+            aiFighter: battleAiFighter,
             playerMoves,
             aiMoves,
             playerPP,
@@ -189,7 +276,7 @@
         const move = aiDecision.move;
 
         aiThinking = false;
-        battleMessage = `${aiFighter.name} used ${move.name}!`;
+        battleMessage = `${battleAiFighter.name} used ${move.name}!`;
 
         aiAnimationType = 'attack';
         aiAnimating = true;
@@ -198,10 +285,10 @@
 
         aiPP[move.name]--;
 
-        const damage = calculateDamage(aiFighter, playerFighter, move);
+        const damage = calculateDamage(battleAiFighter, battlePlayerFighter, move);
         const effectiveness = getTypeMultiplier(
-            ALGORITHM_TYPES[aiFighter.name],
-            ALGORITHM_TYPES[playerFighter.name]
+            ALGORITHM_TYPES[battleAiFighter.name],
+            ALGORITHM_TYPES[battlePlayerFighter.name]
         );
         const isCritical = Math.random() < 0.1;
         const missed = Math.random() > (move.accuracy / 100);
@@ -209,7 +296,7 @@
         await new Promise(resolve => setTimeout(resolve, 300));
 
         if (missed) {
-            battleMessage = `${aiFighter.name}'s attack missed!`;
+            battleMessage = `${battleAiFighter.name}'s attack missed!`;
         } else {
             let finalDamage = damage;
             if (isCritical) {
@@ -219,7 +306,7 @@
             finalDamage *= effectiveness;
             finalDamage = Math.round(finalDamage);
 
-            playerFighter.health = Math.max(0, playerFighter.health - finalDamage);
+            battlePlayerFighter.health = Math.max(0, battlePlayerFighter.health - finalDamage);
 
             playerAnimationType = 'damage';
             playerAnimating = true;
@@ -235,14 +322,14 @@
 
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        if (playerFighter.health <= 0) {
+        if (battlePlayerFighter.health <= 0) {
             playerAnimationType = 'faint';
             playerAnimating = true;
-            battleMessage = `${playerFighter.name} fainted!`;
+            battleMessage = `${battlePlayerFighter.name} fainted!`;
 
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            endBattle(aiFighter.name);
+            endBattle(battleAiFighter.name);
         }
     }
 
@@ -258,11 +345,14 @@
     }
 
     function endBattle(winnerName: string) {
+        if (!battlePlayerFighter || !battleAiFighter) return;
+
         battleEnded = true;
         winner = winnerName;
         showMoveSelection = false;
+        showMoveTooltip = false;
 
-        if (winnerName === playerFighter.name) {
+        if (winnerName === battlePlayerFighter.name) {
             battleMessage = `You won the battle!`;
         } else {
             battleMessage = `You lost the battle!`;
@@ -271,108 +361,199 @@
         setTimeout(() => {
             dispatch('battle-end', {
                 winner: winnerName,
-                playerFinalHealth: playerFighter.health,
-                aiFinalHealth: aiFighter.health,
+                playerFinalHealth: battlePlayerFighter.health,
+                aiFinalHealth: battleAiFighter.health,
                 totalTurns: currentTurn
             });
         }, 3000);
     }
 
     function resetBattle() {
-        dispatch('reset-battle');
+        isInitialized = false;
+        resetAndInitializeBattle();
+    }
+
+    function goBackToMenu() {
+        dispatch('back-to-menu');
+    }
+
+    export function resetForNewBattle() {
+        isInitialized = false;
+        resetAndInitializeBattle();
     }
 </script>
 
-<div class="pokemon-battle-interface">
-    <div class="battle-field">
-        <BattleBackground />
+{#if battlePlayerFighter && battleAiFighter}
+    <div class="pokemon-battle-interface">
+        <div class="battle-field">
+            <BattleBackground />
 
-        <PokemonSprite
-                fighter={aiFighter}
-                isPlayer={false}
-                isVisible={true}
-                animationType={aiAnimationType}
-                bind:isAnimating={aiAnimating}
-        />
+            <PokemonSprite
+                    fighter={battleAiFighter}
+                    isPlayer={false}
+                    isVisible={true}
+                    animationType={aiAnimationType}
+                    bind:isAnimating={aiAnimating}
+            />
 
-        <PokemonSprite
-                fighter={playerFighter}
-                isPlayer={true}
-                isVisible={true}
-                animationType={playerAnimationType}
-                bind:isAnimating={playerAnimating}
-        />
+            <PokemonSprite
+                    fighter={battlePlayerFighter}
+                    isPlayer={true}
+                    isVisible={true}
+                    animationType={playerAnimationType}
+                    bind:isAnimating={playerAnimating}
+            />
 
-        <HealthBar
-                fighter={aiFighter}
-                isPlayer={false}
-        />
+            <HealthBar
+                    fighter={battleAiFighter}
+                    isPlayer={false}
+            />
 
-        <HealthBar
-                fighter={playerFighter}
-                isPlayer={true}
-        />
-    </div>
-
-    <div class="battle-ui">
-        <div class="message-box">
-            <div class="message-text">
-                {battleMessage}
-                {#if aiThinking}
-					<span class="thinking-dots">
-						<span>.</span><span>.</span><span>.</span>
-					</span>
-                {/if}
-            </div>
+            <HealthBar
+                    fighter={battlePlayerFighter}
+                    isPlayer={true}
+            />
         </div>
 
-        {#if showMoveSelection && !battleEnded}
-            <div class="move-menu">
-                <div class="move-menu-header">
-                    <span>What will {playerFighter.name} do?</span>
-                </div>
-                <div class="moves-grid">
-                    {#each playerMoves as move}
-                        {@const pp = playerPP[move.name] || 0}
-                        {@const canUse = pp > 0}
-
-                        <button
-                                class="move-button"
-                                class:disabled={!canUse}
-                                disabled={!canUse || isProcessingTurn}
-                                on:click={() => canUse && handleMoveSelection(move)}
-                        >
-                            <div class="move-name">{move.name}</div>
-                            <div class="move-info">
-                                <span class="move-type type-{move.type}">{move.type}</span>
-                                <span class="move-pp">PP: {pp}/{move.pp}</span>
-                            </div>
-                        </button>
-                    {/each}
-                </div>
-            </div>
-        {/if}
-
-        {#if battleEnded}
-            <div class="battle-end">
-                <div class="battle-result">
-                    {#if winner === playerFighter.name}
-                        <h2 class="victory">You Win!</h2>
-                    {:else}
-                        <h2 class="defeat">You Lose!</h2>
+        <div class="battle-ui">
+            <div class="message-box">
+                <div class="message-text">
+                    {battleMessage}
+                    {#if aiThinking}
+                        <span class="thinking-dots">
+                            <span>.</span><span>.</span><span>.</span>
+                        </span>
                     {/if}
                 </div>
-                <button class="continue-button" on:click={resetBattle}>
-                    Continue
-                </button>
+            </div>
+
+            {#if showMoveSelection && !battleEnded && battlePlayerFighter}
+                <div class="move-menu">
+                    <div class="move-menu-header">
+                        <span>What will {battlePlayerFighter.name} do?</span>
+                    </div>
+                    <div class="moves-grid">
+                        {#each playerMoves as move}
+                            {@const pp = playerPP[move.name] || 0}
+                            {@const canUse = pp > 0}
+
+                            <button
+                                    class="move-button"
+                                    class:disabled={!canUse}
+                                    disabled={!canUse || isProcessingTurn}
+                                    on:click={() => canUse && handleMoveSelection(move)}
+                            >
+                                <div class="move-name">{move.name}</div>
+                                <div class="move-info">
+                                    <span class="move-type type-{move.type}">{move.type}</span>
+                                    <span class="move-pp">PP: {pp}/{move.pp}</span>
+                                    <span
+                                            class="move-tooltip-icon"
+                                            class:disabled={!canUse || isProcessingTurn}
+                                            on:click={(e) => {
+                                            if (!canUse || isProcessingTurn) return;
+                                            handleTooltipClick(e, move);
+                                        }}
+                                    >
+                                        ❓
+                                    </span>
+                                </div>
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+            {/if}
+
+            {#if battleEnded && battlePlayerFighter}
+                <div class="battle-end">
+                    <div class="battle-result">
+                        {#if winner === battlePlayerFighter.name}
+                            <h2 class="victory">You Win!</h2>
+                        {:else}
+                            <h2 class="defeat">You Lose!</h2>
+                        {/if}
+                    </div>
+                    <div class="battle-buttons">
+                        <button class="continue-button" on:click={resetBattle}>
+                            🔄 Battle Again
+                        </button>
+                        <button class="menu-button" on:click={goBackToMenu}>
+                            🏠 Back to Menu
+                        </button>
+                    </div>
+                </div>
+            {/if}
+        </div>
+
+        {#if showMoveTooltip && currentMove}
+            <div class="tooltip-overlay" on:click={closeTooltip}>
+                <div
+                        class="move-tooltip"
+                        style="left: {tooltipX}px; top: {tooltipY}px;"
+                        on:click={(e) => e.stopPropagation()}
+                >
+                    <button class="tooltip-close" on:click={closeTooltip}>✖</button>
+
+                    <div class="tooltip-header">
+                        <div class="move-name">{currentMove.name}</div>
+                        <div class="move-type type-{currentMove.type}">{currentMove.type.toUpperCase()}</div>
+                    </div>
+
+                    <div class="move-stats">
+                        <div class="stat">
+                            <span class="stat-label">Power</span>
+                            <span class="stat-value">{currentMove.power || '—'}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Accuracy</span>
+                            <span class="stat-value">{currentMove.accuracy}%</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">PP</span>
+                            <span class="stat-value">{currentMove.pp}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Category</span>
+                            <span class="stat-value">
+                                {currentMove.category === 'physical' ? '💪' : currentMove.category === 'special' ? '✨' : '🛡️'}
+                                {currentMove.category.toUpperCase()}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="move-description">
+                        <p>{currentMove.description}</p>
+                    </div>
+
+                    {#if currentMove.effect}
+                        <div class="move-effect">
+                            <strong>Effect:</strong> {currentMove.effect}
+                        </div>
+                    {/if}
+
+                    <div class="educational-section">
+                        <div class="education-header">
+                            <span class="education-icon">🎓</span>
+                            <span>Machine Learning Explanation</span>
+                        </div>
+                        <p class="educational-note">{currentMove.educationalNote}</p>
+                    </div>
+                </div>
             </div>
         {/if}
-    </div>
 
-    <button class="theme-toggle" on:click={theme.toggle}>
-        {$theme === 'light' ? '🌙' : '☀️'}
-    </button>
-</div>
+        <button class="theme-toggle" on:click={theme.toggle}>
+            {$theme === 'light' ? '🌙' : '☀️'}
+        </button>
+    </div>
+{:else}
+    <div class="loading-screen">
+        <div class="loading-content">
+            <h2>🔄 Initializing Battle...</h2>
+            <p>Preparing fighters for combat</p>
+        </div>
+    </div>
+{/if}
 
 <style>
     .pokemon-battle-interface {
@@ -382,6 +563,33 @@
         overflow: hidden;
         background: #000;
         font-family: 'Courier New', monospace;
+    }
+
+    .loading-screen {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Courier New', monospace;
+    }
+
+    .loading-content {
+        text-align: center;
+        color: #4ecdc4;
+    }
+
+    .loading-content h2 {
+        margin: 0 0 10px 0;
+        font-size: 1.5rem;
+    }
+
+    .loading-content p {
+        margin: 0;
+        color: #999;
+        font-size: 1rem;
     }
 
     .battle-field {
@@ -512,6 +720,111 @@
         font-size: 0.65rem;
     }
 
+    .move-tooltip-icon {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        margin-left: 4px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        padding: 2px;
+        border-radius: 3px;
+        color: #4a5568;
+        display: inline-block;
+        user-select: none;
+    }
+
+    .move-tooltip-icon:hover {
+        opacity: 1;
+        transform: scale(1.2);
+        background: rgba(78, 205, 196, 0.1);
+        color: #4ecdc4;
+    }
+
+    .move-tooltip-icon.disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .battle-buttons {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .menu-button {
+        background: #6b7280;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+    }
+
+    .menu-button:hover {
+        background: #4b5563;
+        transform: translateY(-2px);
+    }
+
+    .tooltip-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 999;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 100px;
+    }
+
+    .move-tooltip {
+        position: relative;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border: 2px solid #4ecdc4;
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 450px;
+        width: 90vw;
+        max-height: 70vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+        color: #fff;
+        font-family: 'Courier New', monospace;
+        backdrop-filter: blur(10px);
+        animation: tooltipFadeIn 0.3s ease-out;
+    }
+
+    .tooltip-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #fff;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .tooltip-close:hover {
+        background: rgba(239, 68, 68, 0.8);
+        transform: scale(1.1);
+    }
+
     .battle-end {
         display: flex;
         flex-direction: column;
@@ -553,6 +866,144 @@
         transform: translateY(-2px);
     }
 
+    .move-tooltip {
+        position: fixed;
+        z-index: 1000;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border: 2px solid #4ecdc4;
+        border-radius: 12px;
+        padding: 16px;
+        max-width: 320px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+        color: #fff;
+        font-family: 'Courier New', monospace;
+        backdrop-filter: blur(10px);
+        transform: translateX(-50%);
+        pointer-events: none;
+        animation: tooltipFadeIn 0.2s ease-out;
+    }
+
+    @keyframes tooltipFadeIn {
+        from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+
+    .tooltip-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #333;
+    }
+
+    .move-tooltip .move-name {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #4ecdc4;
+    }
+
+    .move-tooltip .move-type {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: #fff;
+    }
+
+    .move-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .stat {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    .stat-label {
+        color: #999;
+    }
+
+    .stat-value {
+        color: #fff;
+        font-weight: bold;
+    }
+
+    .move-description {
+        margin-bottom: 12px;
+        line-height: 1.4;
+    }
+
+    .move-description p {
+        margin: 0;
+        color: #ccc;
+        font-size: 0.95rem;
+    }
+
+    .move-effect {
+        margin-bottom: 12px;
+        padding: 8px;
+        background: rgba(245, 158, 11, 0.1);
+        border-left: 3px solid #f59e0b;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        color: #fbbf24;
+    }
+
+    .educational-section {
+        background: rgba(78, 205, 196, 0.1);
+        border: 1px solid #4ecdc4;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 12px;
+    }
+
+    .education-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: #4ecdc4;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .education-icon {
+        font-size: 1rem;
+    }
+
+    .educational-note {
+        margin: 0;
+        color: #e5e7eb;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .tooltip-arrow {
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-top: 8px solid #4ecdc4;
+    }
+
     .theme-toggle {
         position: absolute;
         top: 20px;
@@ -579,6 +1030,13 @@
     .type-boosting { background: #f59e0b; }
     .type-probabilistic { background: #ec4899; }
     .type-clustering { background: #8b5cf6; }
+
+    .move-tooltip .type-ensemble { background: #22c55e; }
+    .move-tooltip .type-neural { background: #3b82f6; }
+    .move-tooltip .type-geometric { background: #ef4444; }
+    .move-tooltip .type-boosting { background: #f59e0b; }
+    .move-tooltip .type-probabilistic { background: #ec4899; }
+    .move-tooltip .type-clustering { background: #8b5cf6; }
 
     :global(.theme-dark) .message-box {
         background: #2d3748;
@@ -652,6 +1110,24 @@
             font-size: 1.2rem;
             top: 15px;
             right: 15px;
+        }
+
+        .battle-buttons {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .continue-button,
+        .menu-button {
+            width: 100%;
+            padding: 10px 20px;
+            font-size: 1rem;
+        }
+
+        .move-tooltip {
+            max-width: 95vw;
+            padding: 15px;
+            max-height: 60vh;
         }
     }
 </style>

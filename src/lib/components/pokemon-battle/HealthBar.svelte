@@ -1,4 +1,3 @@
-<!-- @file src/lib/components/pokemon-battle/HealthBar.svelte -->
 <script lang="ts">
     import { onMount } from 'svelte';
     import type { Fighter } from '$lib/ml/algorithms';

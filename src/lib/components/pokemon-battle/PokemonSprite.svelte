@@ -1,4 +1,3 @@
-<!-- @file src/lib/components/pokemon-battle/PokemonSprite.svelte -->
 <script lang="ts">
     import { onMount } from 'svelte';
     import { getAlgorithmSprites } from '$lib/stores/theme';
@@ -9,7 +8,6 @@
     export let isVisible: boolean = true;
     export let isAnimating: boolean = false;
     export let animationType: 'none' | 'slide-in' | 'damage' | 'faint' | 'attack' = 'none';
-    export let healthPercentage: number = 100;
 
     let spriteElement: HTMLImageElement;
     let animationClass = '';
@@ -17,23 +15,21 @@
     $: sprites = getAlgorithmSprites(fighter.name);
     $: currentSprite = isPlayer ? sprites.back : sprites.front;
     $: currentHealthPercentage = (fighter.health / fighter.maxHealth) * 100;
+    $: actuallyVisible = isVisible && (fighter.health > 0 || animationType !== 'faint');
 
     $: if (animationType !== 'none' && isAnimating) {
         handleAnimation(animationType);
     }
 
-    onMount(() => {
-        if (isVisible) {
-            setTimeout(() => {
-                animationType = 'slide-in';
-                isAnimating = true;
-            }, 100);
-        }
-    });
+    $: if (fighter.health <= 0 && animationType !== 'faint' && isVisible) {
+        animationType = 'faint';
+        isAnimating = true;
+    }
 
     function handleAnimation(type: typeof animationType) {
         animationClass = `animate-${type}`;
         const duration = getAnimationDuration(type);
+
         setTimeout(() => {
             animationClass = '';
             isAnimating = false;
@@ -49,26 +45,14 @@
             default: return 300;
         }
     }
-
-    $: if (healthPercentage !== currentHealthPercentage && currentHealthPercentage < healthPercentage) {
-        healthPercentage = currentHealthPercentage;
-        if (!isAnimating && animationType === 'none') {
-            animationType = 'damage';
-            isAnimating = true;
-        }
-    }
-
-    $: if (fighter.health <= 0 && animationType !== 'faint') {
-        animationType = 'faint';
-        isAnimating = true;
-    }
 </script>
 
 <div
         class="sprite-wrapper"
         style="--x: {isPlayer ? '25' : '62'}%; --y: {isPlayer ? '72' : '34'}%;"
-        class:visible={isVisible}
+        class:visible={actuallyVisible}
         class:fainted={fighter.health <= 0}
+        class:completely-hidden={fighter.health <= 0 && animationType === 'faint' && !isAnimating}
 >
     <img
             bind:this={spriteElement}
@@ -94,10 +78,17 @@
         transition: all 0.3s ease;
         z-index: 5;
         transform: translate(-50%, -50%);
+        opacity: 1;
     }
 
     .visible {
         opacity: 1;
+    }
+
+    .completely-hidden {
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
     }
 
     .sprite-image {
@@ -123,7 +114,7 @@
     }
 
     .fainted-shadow {
-        opacity: 0.5;
+        opacity: 0.2;
         transform: translateX(-50%) scale(1.2);
     }
 
@@ -199,13 +190,17 @@
             transform: translateY(0) rotate(0deg);
             opacity: 1;
         }
-        50% {
-            transform: translateY(-20px) rotate(10deg);
-            opacity: 0.8;
+        30% {
+            transform: translateY(-15px) rotate(5deg);
+            opacity: 0.9;
+        }
+        70% {
+            transform: translateY(40px) rotate(45deg);
+            opacity: 0.3;
         }
         100% {
-            transform: translateY(60px) rotate(90deg);
-            opacity: 0.3;
+            transform: translateY(80px) rotate(90deg);
+            opacity: 0;
         }
     }
 </style>
