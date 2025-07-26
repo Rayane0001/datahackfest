@@ -1,7 +1,6 @@
 <!-- @file src/lib/components/arena/phases/BattleSetup.svelte -->
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
-    import { theme } from '$lib/stores/theme';
     import { getAlgorithmSprites } from '$lib/stores/theme';
     import type { Fighter } from '$lib/ml/algorithms';
     import type { AILevel } from '$lib/ai/combat-ai';
@@ -35,14 +34,10 @@
     }
 
     function getLevel(fighter: Fighter): number {
+        if (!fighter) return 50;
         return Math.floor((fighter.attack + fighter.defense + fighter.speed) / 3) || 50;
     }
 </script>
-
-<!-- Theme Toggle -->
-<button class="theme-toggle" on:click={theme.toggle}>
-    {$theme === 'light' ? '🌙' : '☀️'}
-</button>
 
 <div class="battle-setup-screen">
     <div class="setup-header">
@@ -132,10 +127,10 @@
                         class:selected={battleMode === 'pokemon'}
                         on:click={() => setBattleMode('pokemon')}
                 >
-                    <div class="mode-icon">🐾</div>
+                    <div class="mode-icon">⚔️</div>
                     <div class="mode-info">
                         <div class="mode-title">Pokemon Battle</div>
-                        <div class="mode-description">Classic Pokemon-style combat with sprites, animations, and authentic battle mechanics</div>
+                        <div class="mode-description">Classic battle system with sprites, animations, and authentic combat mechanics</div>
                     </div>
                     <div class="mode-features">
                         <span class="feature">Visual Sprites</span>
@@ -235,36 +230,15 @@
 </div>
 
 <style>
-    .theme-toggle {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: rgba(255, 255, 255, 0.9);
-        border: 2px solid #4a5568;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        z-index: 1000;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    .theme-toggle:hover {
-        transform: scale(1.1);
-        background: white;
-    }
-
     .battle-setup-screen {
         min-height: 100vh;
-        background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
         padding: 80px 20px 40px;
         font-family: 'Courier New', monospace;
     }
 
     :global(.theme-dark) .battle-setup-screen {
-        background: linear-gradient(135deg, #2d1b69 0%, #11998e 100%);
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
     }
 
     .setup-header {
@@ -275,17 +249,13 @@
     .setup-header h1 {
         font-size: 3rem;
         margin: 0 0 10px 0;
-        color: #fff;
+        color: #f1f5f9;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
     }
 
     .subtitle {
         font-size: 1.2rem;
-        color: rgba(255, 255, 255, 0.9);
+        color: #cbd5e1;
         margin: 0;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     }
@@ -308,7 +278,7 @@
     }
 
     .fighter-card {
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(148, 163, 184, 0.15);
         border-radius: 20px;
         padding: 30px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -317,11 +287,13 @@
         border: 4px solid transparent;
         position: relative;
         overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     :global(.theme-dark) .fighter-card {
-        background: rgba(26, 26, 46, 0.95);
-        color: #fff;
+        background: rgba(30, 41, 59, 0.3);
+        border-color: rgba(71, 85, 105, 0.3);
+        color: #f1f5f9;
     }
 
     .fighter-card::before {
@@ -331,7 +303,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+        background: linear-gradient(45deg, transparent, rgba(37, 99, 235, 0.1), transparent);
         animation: shine 3s ease-in-out infinite;
     }
 
@@ -344,7 +316,7 @@
         width: 100px;
         height: 100px;
         margin: 0 auto 20px;
-        background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.2) 0%, transparent 70%);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -373,23 +345,15 @@
 
     .fighter-name {
         font-size: 1.3rem;
-        font-weight: bold;
-        color: #2d3748;
+        font-weight: 600;
+        color: #f1f5f9;
         margin-bottom: 8px;
-    }
-
-    :global(.theme-dark) .fighter-name {
-        color: #e2e8f0;
     }
 
     .fighter-level {
         font-size: 1rem;
-        color: #4a5568;
+        color: #cbd5e1;
         margin-bottom: 10px;
-    }
-
-    :global(.theme-dark) .fighter-level {
-        color: #a0aec0;
     }
 
     .fighter-type {
@@ -397,7 +361,7 @@
         padding: 4px 12px;
         border-radius: 12px;
         font-size: 0.8rem;
-        font-weight: bold;
+        font-weight: 600;
         color: #fff;
         text-transform: uppercase;
         margin-bottom: 10px;
@@ -405,26 +369,16 @@
 
     .trainer-label {
         font-size: 0.9rem;
-        color: #6b7280;
-        font-weight: bold;
-    }
-
-    :global(.theme-dark) .trainer-label {
-        color: #9ca3af;
+        color: #94a3b8;
+        font-weight: 600;
     }
 
     .empty-slot {
-        background: rgba(255, 255, 255, 0.6);
+        background: rgba(71, 85, 105, 0.3);
         border-radius: 20px;
         padding: 40px 30px;
         text-align: center;
-        border: 3px dashed #cbd5e0;
-    }
-
-    :global(.theme-dark) .empty-slot {
-        background: rgba(45, 55, 72, 0.6);
-        border-color: #4a5568;
-        color: #a0aec0;
+        border: 3px dashed #64748b;
     }
 
     .empty-sprite {
@@ -434,8 +388,8 @@
     }
 
     .empty-text {
-        color: #9ca3af;
-        font-weight: bold;
+        color: #94a3b8;
+        font-weight: 600;
     }
 
     .vs-lightning-container {
@@ -449,47 +403,46 @@
         display: flex;
         align-items: center;
         gap: 15px;
-        background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
         padding: 15px 25px;
         border-radius: 20px;
-        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
         animation: pulse 2s ease-in-out infinite;
     }
 
     .lightning-bolt {
         font-size: 1.5rem;
         animation: lightning 1.5s ease-in-out infinite;
+        color: #fbbf24;
     }
 
     .vs-text {
         font-size: 1.8rem;
-        font-weight: bold;
+        font-weight: 600;
         color: #fff;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     .type-matchup {
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(148, 163, 184, 0.15);
         border-radius: 15px;
         padding: 15px;
         text-align: center;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     :global(.theme-dark) .type-matchup {
-        background: rgba(26, 26, 46, 0.9);
-        color: #fff;
+        background: rgba(30, 41, 59, 0.3);
+        border-color: rgba(71, 85, 105, 0.3);
+        color: #f1f5f9;
     }
 
     .matchup-text {
         font-size: 0.9rem;
-        color: #6b7280;
+        color: #94a3b8;
         margin-bottom: 10px;
         display: block;
-    }
-
-    :global(.theme-dark) .matchup-text {
-        color: #9ca3af;
     }
 
     .matchup-display {
@@ -503,15 +456,15 @@
         padding: 4px 10px;
         border-radius: 10px;
         font-size: 0.8rem;
-        font-weight: bold;
+        font-weight: 600;
         color: #fff;
         text-transform: uppercase;
     }
 
     .vs-small {
         font-size: 0.8rem;
-        color: #6b7280;
-        font-weight: bold;
+        color: #94a3b8;
+        font-weight: 600;
     }
 
     .config-panels {
@@ -523,27 +476,25 @@
     }
 
     .config-panel {
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(148, 163, 184, 0.15);
         border-radius: 20px;
         padding: 30px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
         backdrop-filter: blur(10px);
+        border: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     :global(.theme-dark) .config-panel {
-        background: rgba(26, 26, 46, 0.95);
-        color: #fff;
+        background: rgba(30, 41, 59, 0.3);
+        border-color: rgba(71, 85, 105, 0.3);
+        color: #f1f5f9;
     }
 
     .config-panel h3 {
         text-align: center;
         margin: 0 0 25px 0;
         font-size: 1.5rem;
-        color: #2d3748;
-    }
-
-    :global(.theme-dark) .config-panel h3 {
-        color: #e2e8f0;
+        color: #f1f5f9;
     }
 
     .mode-selection,
@@ -555,8 +506,8 @@
 
     .mode-card,
     .difficulty-card {
-        background: rgba(255, 255, 255, 0.8);
-        border: 3px solid #e2e8f0;
+        background: rgba(255, 255, 255, 0.1);
+        border: 3px solid #64748b;
         border-radius: 15px;
         padding: 20px;
         cursor: pointer;
@@ -569,8 +520,8 @@
 
     :global(.theme-dark) .mode-card,
     :global(.theme-dark) .difficulty-card {
-        background: rgba(45, 55, 72, 0.8);
-        border-color: #4a5568;
+        background: rgba(15, 23, 42, 0.3);
+        border-color: #475569;
     }
 
     .mode-card:hover,
@@ -581,9 +532,9 @@
 
     .mode-card.selected,
     .difficulty-card.selected {
-        border-color: #4ecdc4;
-        background: rgba(78, 205, 196, 0.1);
-        box-shadow: 0 0 20px rgba(78, 205, 196, 0.3);
+        border-color: #2563eb;
+        background: rgba(37, 99, 235, 0.15);
+        box-shadow: 0 0 20px rgba(37, 99, 235, 0.3);
     }
 
     .mode-icon,
@@ -600,27 +551,17 @@
     .mode-title,
     .difficulty-title {
         font-size: 1.1rem;
-        font-weight: bold;
-        color: #2d3748;
+        font-weight: 600;
+        color: #f1f5f9;
         margin-bottom: 5px;
-    }
-
-    :global(.theme-dark) .mode-title,
-    :global(.theme-dark) .difficulty-title {
-        color: #e2e8f0;
     }
 
     .mode-description,
     .difficulty-description {
         font-size: 0.9rem;
-        color: #6b7280;
+        color: #94a3b8;
         line-height: 1.4;
         margin-bottom: 10px;
-    }
-
-    :global(.theme-dark) .mode-description,
-    :global(.theme-dark) .difficulty-description {
-        color: #9ca3af;
     }
 
     .mode-features {
@@ -630,12 +571,12 @@
     }
 
     .feature {
-        background: #4ecdc4;
+        background: #2563eb;
         color: #fff;
         padding: 2px 8px;
         border-radius: 8px;
         font-size: 0.7rem;
-        font-weight: bold;
+        font-weight: 600;
     }
 
     .battle-controls {
@@ -651,35 +592,37 @@
         border: none;
         border-radius: 15px;
         font-family: inherit;
-        font-weight: bold;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
         font-size: 1.1rem;
     }
 
     .back-button {
-        background: rgba(255, 255, 255, 0.9);
-        color: #4a5568;
-        border: 2px solid #e2e8f0;
+        background: rgba(71, 85, 105, 0.8);
+        color: #e2e8f0;
+        border: 2px solid #475569;
     }
 
     .back-button:hover {
-        background: #fff;
+        background: #64748b;
+        border-color: #64748b;
         transform: translateX(-3px);
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     }
 
     .battle-button {
-        background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
         color: #fff;
         border: none;
         position: relative;
         overflow: hidden;
+        box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.25);
     }
 
     .battle-button:hover:not(.disabled) {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
     }
 
     .battle-button.disabled {
@@ -705,12 +648,12 @@
         letter-spacing: 1px;
     }
 
-    .type-ensemble { background: #22c55e; }
-    .type-neural { background: #3b82f6; }
-    .type-geometric { background: #ef4444; }
-    .type-boosting { background: #f59e0b; }
-    .type-probabilistic { background: #ec4899; }
-    .type-clustering { background: #8b5cf6; }
+    .type-ensemble { background: #2563eb; }
+    .type-neural { background: #1e40af; }
+    .type-geometric { background: #1d4ed8; }
+    .type-boosting { background: #3b82f6; }
+    .type-probabilistic { background: #93c5fd; }
+    .type-clustering { background: #60a5fa; }
 
     @keyframes pulse {
         0%, 100% { transform: scale(1); }

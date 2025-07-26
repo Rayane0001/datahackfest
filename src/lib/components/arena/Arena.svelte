@@ -200,9 +200,13 @@
 <style>
     .arena-container {
         min-height: 100vh;
-        background: #0a0a0a;
-        color: #fff;
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+        color: #f1f5f9;
         font-family: 'Courier New', monospace;
+    }
+
+    :global(.theme-dark) .arena-container {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
     }
 
     .loading-battle {
@@ -216,22 +220,23 @@
 
     .loading-battle p {
         font-size: 1.2rem;
-        color: #4ecdc4;
+        color: #3b82f6;
     }
 
     .loading-battle button {
-        background: #4ecdc4;
-        color: #000;
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        color: white;
         border: none;
         padding: 12px 24px;
         border-radius: 6px;
         font-size: 1rem;
         cursor: pointer;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.25);
     }
 
     .loading-battle button:hover {
-        background: #3ba99c;
         transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(37, 99, 235, 0.35);
     }
 </style>

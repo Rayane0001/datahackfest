@@ -1,7 +1,6 @@
 <!-- @file src/lib/components/arena/phases/FighterSelection.svelte -->
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
-    import { theme } from '$lib/stores/theme';
     import { getAlgorithmSprites } from '$lib/stores/theme';
     import type { Fighter } from '$lib/ml/algorithms';
     import type { CombatEngine } from '$lib/ml/combat';
@@ -16,12 +15,12 @@
     let fighter2: Fighter | null = null;
 
     const availableAlgorithms = [
-        { name: 'Random Forest', color: '#22c55e', type: 'ensemble' },
-        { name: 'Neural Network', color: '#3b82f6', type: 'neural' },
-        { name: 'Support Vector Machine', color: '#ef4444', type: 'geometric' },
-        { name: 'Gradient Boosting', color: '#f59e0b', type: 'boosting' },
-        { name: 'K-Means Clustering', color: '#8b5cf6', type: 'clustering' },
-        { name: 'Naive Bayes', color: '#ec4899', type: 'probabilistic' }
+        { name: 'Random Forest', color: '#2563eb', type: 'ensemble' },
+        { name: 'Neural Network', color: '#1e40af', type: 'neural' },
+        { name: 'Support Vector Machine', color: '#1d4ed8', type: 'geometric' },
+        { name: 'Gradient Boosting', color: '#3b82f6', type: 'boosting' },
+        { name: 'K-Means Clustering', color: '#60a5fa', type: 'clustering' },
+        { name: 'Naive Bayes', color: '#93c5fd', type: 'probabilistic' }
     ];
 
     async function selectFighter(slot: 1 | 2, algorithm: any) {
@@ -57,14 +56,10 @@
     }
 
     function getLevel(fighter: Fighter): number {
+        if (!fighter) return 50;
         return Math.floor((fighter.attack + fighter.defense + fighter.speed) / 3) || 50;
     }
 </script>
-
-<!-- Theme Toggle -->
-<button class="theme-toggle" on:click={theme.toggle}>
-    {$theme === 'light' ? '🌙' : '☀️'}
-</button>
 
 <div class="pokemon-selection-screen">
     <div class="selection-header">
@@ -243,36 +238,15 @@
 </div>
 
 <style>
-    .theme-toggle {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: rgba(255, 255, 255, 0.9);
-        border: 2px solid #4a5568;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        z-index: 1000;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    .theme-toggle:hover {
-        transform: scale(1.1);
-        background: white;
-    }
-
     .pokemon-selection-screen {
         min-height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
         padding: 80px 20px 20px;
         font-family: 'Courier New', monospace;
     }
 
     :global(.theme-dark) .pokemon-selection-screen {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
     }
 
     .selection-header {
@@ -283,17 +257,13 @@
     .selection-header h1 {
         font-size: 3rem;
         margin: 0 0 10px 0;
-        color: #fff;
+        color: #f1f5f9;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        background: linear-gradient(45deg, #ffd700, #ffed4e);
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
     }
 
     .subtitle {
         font-size: 1.2rem;
-        color: rgba(255, 255, 255, 0.9);
+        color: #cbd5e1;
         margin: 0;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     }
@@ -308,27 +278,25 @@
     }
 
     .trainer-section {
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(148, 163, 184, 0.15);
         border-radius: 20px;
         padding: 30px;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         backdrop-filter: blur(10px);
+        border: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     :global(.theme-dark) .trainer-section {
-        background: rgba(26, 26, 46, 0.95);
-        color: #fff;
+        background: rgba(30, 41, 59, 0.3);
+        border-color: rgba(71, 85, 105, 0.3);
+        color: #f1f5f9;
     }
 
     .trainer-header h2 {
         text-align: center;
         margin: 0 0 30px 0;
-        color: #2d3748;
+        color: #f1f5f9;
         font-size: 1.5rem;
-    }
-
-    :global(.theme-dark) .trainer-header h2 {
-        color: #e2e8f0;
     }
 
     .pokemon-selection-grid {
@@ -349,6 +317,11 @@
         align-items: center;
         gap: 10px;
         min-height: 120px;
+    }
+
+    :global(.theme-dark) .pokemon-card {
+        background: rgba(30, 41, 59, 0.8);
+        color: #f1f5f9;
     }
 
     .pokemon-card:hover:not(:disabled) {
@@ -383,17 +356,21 @@
     }
 
     .card-name {
-        font-weight: bold;
+        font-weight: 600;
         font-size: 0.9rem;
-        color: #2d3748;
+        color: #1e293b;
         margin-bottom: 5px;
+    }
+
+    :global(.theme-dark) .card-name {
+        color: #f1f5f9;
     }
 
     .card-type {
         padding: 2px 8px;
         border-radius: 10px;
         font-size: 0.7rem;
-        font-weight: bold;
+        font-weight: 600;
         color: #fff;
         text-transform: uppercase;
     }
@@ -408,13 +385,13 @@
     }
 
     :global(.theme-dark) .selected-pokemon {
-        background: rgba(45, 55, 72, 0.95);
-        color: #fff;
+        background: rgba(30, 41, 59, 0.9);
+        color: #f1f5f9;
     }
 
     @keyframes selectedGlow {
-        0%, 100% { box-shadow: 0 0 20px rgba(78, 205, 196, 0.5); }
-        50% { box-shadow: 0 0 30px rgba(78, 205, 196, 0.8); }
+        0%, 100% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.5); }
+        50% { box-shadow: 0 0 30px rgba(37, 99, 235, 0.8); }
     }
 
     .pokemon-sprite-container {
@@ -424,7 +401,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%);
         border-radius: 50%;
     }
 
@@ -448,23 +425,23 @@
 
     .pokemon-name {
         font-size: 1.5rem;
-        font-weight: bold;
-        color: #2d3748;
+        font-weight: 600;
+        color: #1e293b;
         margin-bottom: 5px;
     }
 
     :global(.theme-dark) .pokemon-name {
-        color: #e2e8f0;
+        color: #f1f5f9;
     }
 
     .pokemon-level {
         font-size: 1.1rem;
-        color: #4a5568;
+        color: #475569;
         margin-bottom: 8px;
     }
 
     :global(.theme-dark) .pokemon-level {
-        color: #a0aec0;
+        color: #94a3b8;
     }
 
     .pokemon-type {
@@ -472,7 +449,7 @@
         padding: 4px 12px;
         border-radius: 12px;
         font-size: 0.8rem;
-        font-weight: bold;
+        font-weight: 600;
         color: #fff;
         text-transform: uppercase;
     }
@@ -486,35 +463,35 @@
 
     .stat {
         text-align: center;
-        background: rgba(0, 0, 0, 0.05);
+        background: rgba(15, 23, 42, 0.1);
         padding: 10px;
         border-radius: 8px;
     }
 
     :global(.theme-dark) .stat {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(15, 23, 42, 0.3);
     }
 
     .stat-name {
         display: block;
         font-size: 0.8rem;
-        color: #6b7280;
+        color: #64748b;
         margin-bottom: 5px;
     }
 
     :global(.theme-dark) .stat-name {
-        color: #9ca3af;
+        color: #94a3b8;
     }
 
     .stat-value {
         display: block;
         font-size: 1.2rem;
-        font-weight: bold;
-        color: #1f2937;
+        font-weight: 600;
+        color: #1e293b;
     }
 
     :global(.theme-dark) .stat-value {
-        color: #f3f4f6;
+        color: #f1f5f9;
     }
 
     .ml-performance {
@@ -531,9 +508,13 @@
     .bar {
         flex: 1;
         height: 8px;
-        background: #e5e7eb;
+        background: #e2e8f0;
         border-radius: 4px;
         overflow: hidden;
+    }
+
+    :global(.theme-dark) .bar {
+        background: #334155;
     }
 
     .fill {
@@ -553,18 +534,18 @@
     .vs-circle {
         width: 80px;
         height: 80px;
-        background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
         animation: pulse 2s ease-in-out infinite;
     }
 
     .vs-text {
         font-size: 1.5rem;
-        font-weight: bold;
+        font-weight: 600;
         color: #fff;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     }
@@ -572,6 +553,7 @@
     .vs-lightning {
         font-size: 2rem;
         animation: lightning 1s ease-in-out infinite;
+        color: #fbbf24;
     }
 
     @keyframes pulse {
@@ -614,18 +596,18 @@
     .pokeball-top {
         width: 100%;
         height: 50%;
-        background: #ff4444;
+        background: #dc2626;
         border-radius: 60px 60px 0 0;
-        border: 3px solid #333;
+        border: 3px solid #1f2937;
         border-bottom: none;
     }
 
     .pokeball-bottom {
         width: 100%;
         height: 50%;
-        background: #fff;
+        background: #f1f5f9;
         border-radius: 0 0 60px 60px;
-        border: 3px solid #333;
+        border: 3px solid #1f2937;
         border-top: none;
     }
 
@@ -636,8 +618,8 @@
         transform: translate(-50%, -50%);
         width: 20px;
         height: 20px;
-        background: #fff;
-        border: 3px solid #333;
+        background: #f1f5f9;
+        border: 3px solid #1f2937;
         border-radius: 50%;
     }
 
@@ -646,12 +628,12 @@
         50% { transform: translateY(-20px); }
     }
 
-    .type-ensemble { background: #22c55e; }
-    .type-neural { background: #3b82f6; }
-    .type-geometric { background: #ef4444; }
-    .type-boosting { background: #f59e0b; }
-    .type-probabilistic { background: #ec4899; }
-    .type-clustering { background: #8b5cf6; }
+    .type-ensemble { background: #2563eb; }
+    .type-neural { background: #1e40af; }
+    .type-geometric { background: #1d4ed8; }
+    .type-boosting { background: #3b82f6; }
+    .type-probabilistic { background: #93c5fd; }
+    .type-clustering { background: #60a5fa; }
 
     @media (max-width: 1200px) {
         .selection-grid {
