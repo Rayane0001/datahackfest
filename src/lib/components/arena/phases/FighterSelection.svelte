@@ -1,6 +1,8 @@
 <!-- @file src/lib/components/arena/phases/FighterSelection.svelte -->
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
+    import { theme } from '$lib/stores/theme';
+    import { getAlgorithmSprites } from '$lib/stores/theme';
     import type { Fighter } from '$lib/ml/algorithms';
     import type { CombatEngine } from '$lib/ml/combat';
 
@@ -10,18 +12,16 @@
 
     const dispatch = createEventDispatcher();
 
-    // Fighter state
     let fighter1: Fighter | null = null;
     let fighter2: Fighter | null = null;
 
-    // Available algorithms
     const availableAlgorithms = [
-        { name: 'Random Forest', color: '#22c55e', type: 'forest', emoji: '🌳' },
-        { name: 'Neural Network', color: '#3b82f6', type: 'neural', emoji: '🧠' },
-        { name: 'Support Vector Machine', color: '#ef4444', type: 'svm', emoji: '⚔️' },
-        { name: 'Gradient Boosting', color: '#f59e0b', type: 'gradient', emoji: '⚡' },
-        { name: 'K-Means Clustering', color: '#8b5cf6', type: 'kmeans', emoji: '🎲' },
-        { name: 'Naive Bayes', color: '#ec4899', type: 'bayes', emoji: '🎯' }
+        { name: 'Random Forest', color: '#22c55e', type: 'ensemble' },
+        { name: 'Neural Network', color: '#3b82f6', type: 'neural' },
+        { name: 'Support Vector Machine', color: '#ef4444', type: 'geometric' },
+        { name: 'Gradient Boosting', color: '#f59e0b', type: 'boosting' },
+        { name: 'K-Means Clustering', color: '#8b5cf6', type: 'clustering' },
+        { name: 'Naive Bayes', color: '#ec4899', type: 'probabilistic' }
     ];
 
     async function selectFighter(slot: 1 | 2, algorithm: any) {
@@ -46,7 +46,6 @@
                 fighter2 = fighter;
             }
 
-            // Check if both fighters are selected
             if (fighter1 && fighter2) {
                 dispatch('fighters-selected', { fighter1, fighter2 });
             }
@@ -56,76 +55,172 @@
             dispatch('loading', false);
         }
     }
+
+    function getLevel(fighter: Fighter): number {
+        return Math.floor((fighter.attack + fighter.defense + fighter.speed) / 3) || 50;
+    }
 </script>
 
-<div class="fighter-selection-phase">
+<!-- Theme Toggle -->
+<button class="theme-toggle" on:click={theme.toggle}>
+    {$theme === 'light' ? '🌙' : '☀️'}
+</button>
+
+<div class="pokemon-selection-screen">
+    <div class="selection-header">
+        <h1>Choose Your Fighters!</h1>
+        <p class="subtitle">Select two ML algorithms to battle with your dataset</p>
+    </div>
+
     <div class="selection-grid">
-        <div class="fighter-slot">
-            <h3>Fighter 1 (You)</h3>
+        <!-- Player 1 Selection -->
+        <div class="trainer-section player-section">
+            <div class="trainer-header">
+                <h2>👤 Player 1 (You)</h2>
+            </div>
+
             {#if fighter1}
-                <div class="selected-fighter" style="border-color: {fighter1.color}">
-                    <div class="fighter-header">
-                        <span class="fighter-emoji">{availableAlgorithms.find(a => a.name === fighter1?.name)?.emoji || '🔥'}</span>
-                        <strong>{fighter1.name}</strong>
+                <div class="selected-pokemon" style="border-color: {fighter1.color}">
+                    <div class="pokemon-sprite-container">
+                        <img
+                                src={getAlgorithmSprites(fighter1.name).front}
+                                alt="{fighter1.name} sprite"
+                                class="pokemon-sprite selected"
+                                on:error={() => console.warn(`Failed to load sprite for ${fighter1.name}`)}
+                        />
                     </div>
-                    <div class="fighter-stats">
-                        <span>ATK: {fighter1.attack.toFixed(1)}</span>
-                        <span>DEF: {fighter1.defense.toFixed(1)}</span>
-                        <span>SPD: {fighter1.speed.toFixed(1)}</span>
+                    <div class="pokemon-info">
+                        <div class="pokemon-name">{fighter1.name}</div>
+                        <div class="pokemon-level">Lv. {getLevel(fighter1)}</div>
+                        <div class="pokemon-type type-{fighter1.type}">{fighter1.type.toUpperCase()}</div>
                     </div>
-                    <div class="ml-stats">
-                        <small>Accuracy: {(fighter1.precision * 100).toFixed(1)}%</small>
+                    <div class="pokemon-stats">
+                        <div class="stat">
+                            <span class="stat-name">ATK</span>
+                            <span class="stat-value">{Math.round(fighter1.attack)}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-name">DEF</span>
+                            <span class="stat-value">{Math.round(fighter1.defense)}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-name">SPD</span>
+                            <span class="stat-value">{Math.round(fighter1.speed)}</span>
+                        </div>
+                    </div>
+                    <div class="ml-performance">
+                        <div class="performance-bar">
+                            <span>Accuracy</span>
+                            <div class="bar">
+                                <div class="fill" style="width: {fighter1.precision * 100}%; background: {fighter1.color}"></div>
+                            </div>
+                            <span>{(fighter1.precision * 100).toFixed(1)}%</span>
+                        </div>
                     </div>
                 </div>
             {:else}
-                <div class="algorithm-grid">
+                <div class="pokemon-selection-grid">
                     {#each availableAlgorithms as algo}
                         <button
-                                class="algo-button"
-                                style="background-color: {algo.color}20; border-color: {algo.color}"
+                                class="pokemon-card"
+                                style="--type-color: {algo.color}"
                                 on:click={() => selectFighter(1, algo)}
                                 disabled={isLoading}
                         >
-                            <span class="algo-emoji">{algo.emoji}</span>
-                            <span class="algo-name">{algo.name}</span>
+                            <div class="card-sprite-container">
+                                <img
+                                        src={getAlgorithmSprites(algo.name).front}
+                                        alt="{algo.name} sprite"
+                                        class="card-sprite"
+                                        on:error={() => console.warn(`Failed to load sprite for ${algo.name}`)}
+                                />
+                            </div>
+                            <div class="card-info">
+                                <div class="card-name">{algo.name}</div>
+                                <div class="card-type type-{algo.type}">{algo.type}</div>
+                            </div>
                         </button>
                     {/each}
                 </div>
             {/if}
         </div>
 
-        <div class="vs-divider">
-            <span>VS</span>
+        <!-- VS Divider -->
+        <div class="vs-section">
+            <div class="vs-circle">
+                <span class="vs-text">VS</span>
+            </div>
+            {#if fighter1 && fighter2}
+                <div class="vs-lightning">⚡</div>
+            {/if}
         </div>
 
-        <div class="fighter-slot">
-            <h3>Fighter 2 (AI)</h3>
+        <!-- Player 2 Selection -->
+        <div class="trainer-section ai-section">
+            <div class="trainer-header">
+                <h2>🤖 Player 2 (AI)</h2>
+            </div>
+
             {#if fighter2}
-                <div class="selected-fighter" style="border-color: {fighter2.color}">
-                    <div class="fighter-header">
-                        <span class="fighter-emoji">{availableAlgorithms.find(a => a.name === fighter2?.name)?.emoji || '🔥'}</span>
-                        <strong>{fighter2.name}</strong>
+                <div class="selected-pokemon" style="border-color: {fighter2.color}">
+                    <div class="pokemon-sprite-container">
+                        <img
+                                src={getAlgorithmSprites(fighter2.name).front}
+                                alt="{fighter2.name} sprite"
+                                class="pokemon-sprite selected"
+                                on:error={() => console.warn(`Failed to load sprite for ${fighter2.name}`)}
+                        />
                     </div>
-                    <div class="fighter-stats">
-                        <span>ATK: {fighter2.attack.toFixed(1)}</span>
-                        <span>DEF: {fighter2.defense.toFixed(1)}</span>
-                        <span>SPD: {fighter2.speed.toFixed(1)}</span>
+                    <div class="pokemon-info">
+                        <div class="pokemon-name">{fighter2.name}</div>
+                        <div class="pokemon-level">Lv. {getLevel(fighter2)}</div>
+                        <div class="pokemon-type type-{fighter2.type}">{fighter2.type.toUpperCase()}</div>
                     </div>
-                    <div class="ml-stats">
-                        <small>Accuracy: {(fighter2.precision * 100).toFixed(1)}%</small>
+                    <div class="pokemon-stats">
+                        <div class="stat">
+                            <span class="stat-name">ATK</span>
+                            <span class="stat-value">{Math.round(fighter2.attack)}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-name">DEF</span>
+                            <span class="stat-value">{Math.round(fighter2.defense)}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-name">SPD</span>
+                            <span class="stat-value">{Math.round(fighter2.speed)}</span>
+                        </div>
+                    </div>
+                    <div class="ml-performance">
+                        <div class="performance-bar">
+                            <span>Accuracy</span>
+                            <div class="bar">
+                                <div class="fill" style="width: {fighter2.precision * 100}%; background: {fighter2.color}"></div>
+                            </div>
+                            <span>{(fighter2.precision * 100).toFixed(1)}%</span>
+                        </div>
                     </div>
                 </div>
             {:else}
-                <div class="algorithm-grid">
+                <div class="pokemon-selection-grid">
                     {#each availableAlgorithms as algo}
                         <button
-                                class="algo-button"
-                                style="background-color: {algo.color}20; border-color: {algo.color}"
+                                class="pokemon-card"
+                                style="--type-color: {algo.color}"
                                 on:click={() => selectFighter(2, algo)}
                                 disabled={isLoading}
                         >
-                            <span class="algo-emoji">{algo.emoji}</span>
-                            <span class="algo-name">{algo.name}</span>
+                            <div class="card-sprite-container">
+                                <img
+                                        src={getAlgorithmSprites(algo.name).front}
+                                        alt="{algo.name} sprite"
+                                        class="card-sprite"
+                                        on:error={() => console.warn(`Failed to load sprite for ${algo.name}`)}
+                                />
+                            </div>
+                            <div class="card-info">
+                                <div class="card-name">{algo.name}</div>
+                                <div class="card-type type-{algo.type}">{algo.type}</div>
+                            </div>
                         </button>
                     {/each}
                 </div>
@@ -134,148 +229,456 @@
     </div>
 
     {#if isLoading}
-        <div class="loading-indicator">
-            <div class="spinner">⚡</div>
-            <p>Training algorithm on your dataset...</p>
+        <div class="loading-overlay">
+            <div class="pokeball-loading">
+                <div class="pokeball">
+                    <div class="pokeball-top"></div>
+                    <div class="pokeball-bottom"></div>
+                    <div class="pokeball-center"></div>
+                </div>
+                <p>Training {isLoading ? 'algorithm' : ''} on your dataset...</p>
+            </div>
         </div>
     {/if}
 </div>
 
 <style>
-    .fighter-selection-phase {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
+    .theme-toggle {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 2px solid #4a5568;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .theme-toggle:hover {
+        transform: scale(1.1);
+        background: white;
+    }
+
+    .pokemon-selection-screen {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 80px 20px 20px;
+        font-family: 'Courier New', monospace;
+    }
+
+    :global(.theme-dark) .pokemon-selection-screen {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+
+    .selection-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .selection-header h1 {
+        font-size: 3rem;
+        margin: 0 0 10px 0;
+        color: #fff;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        background: linear-gradient(45deg, #ffd700, #ffed4e);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     }
 
     .selection-grid {
         display: grid;
         grid-template-columns: 1fr auto 1fr;
-        gap: 20px;
-        margin-bottom: 20px;
+        gap: 40px;
+        max-width: 1400px;
+        margin: 0 auto;
+        align-items: start;
     }
 
-    .fighter-slot h3 {
+    .trainer-section {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+    }
+
+    :global(.theme-dark) .trainer-section {
+        background: rgba(26, 26, 46, 0.95);
+        color: #fff;
+    }
+
+    .trainer-header h2 {
         text-align: center;
-        margin-bottom: 15px;
-        color: #ccc;
+        margin: 0 0 30px 0;
+        color: #2d3748;
+        font-size: 1.5rem;
     }
 
-    .algorithm-grid {
+    :global(.theme-dark) .trainer-header h2 {
+        color: #e2e8f0;
+    }
+
+    .pokemon-selection-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
+        gap: 15px;
     }
 
-    .algo-button {
+    .pokemon-card {
+        background: rgba(255, 255, 255, 0.9);
+        border: 3px solid var(--type-color);
+        border-radius: 15px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 5px;
-        padding: 15px 10px;
-        border: 2px solid;
-        background: transparent;
-        color: #fff;
-        border-radius: 8px;
-        cursor: pointer;
-        font-family: inherit;
-        transition: all 0.3s ease;
-        min-height: 80px;
+        gap: 10px;
+        min-height: 120px;
     }
 
-    .algo-button:hover:not(:disabled) {
-        transform: scale(1.05);
-        box-shadow: 0 0 15px currentColor;
+    .pokemon-card:hover:not(:disabled) {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        border-width: 4px;
     }
 
-    .algo-button:disabled {
-        opacity: 0.5;
+    .pokemon-card:disabled {
+        opacity: 0.6;
         cursor: not-allowed;
     }
 
-    .algo-emoji {
-        font-size: 1.5rem;
+    .card-sprite-container {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .algo-name {
+    .card-sprite {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        image-rendering: pixelated;
+        filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+    }
+
+    .card-info {
+        text-align: center;
+    }
+
+    .card-name {
+        font-weight: bold;
         font-size: 0.9rem;
-        text-align: center;
-        line-height: 1.2;
+        color: #2d3748;
+        margin-bottom: 5px;
     }
 
-    .selected-fighter {
-        border: 2px solid;
+    .card-type {
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        color: #fff;
+        text-transform: uppercase;
+    }
+
+    .selected-pokemon {
+        background: rgba(255, 255, 255, 0.95);
+        border: 4px solid;
+        border-radius: 20px;
+        padding: 25px;
+        text-align: center;
+        animation: selectedGlow 2s ease-in-out infinite;
+    }
+
+    :global(.theme-dark) .selected-pokemon {
+        background: rgba(45, 55, 72, 0.95);
+        color: #fff;
+    }
+
+    @keyframes selectedGlow {
+        0%, 100% { box-shadow: 0 0 20px rgba(78, 205, 196, 0.5); }
+        50% { box-shadow: 0 0 30px rgba(78, 205, 196, 0.8); }
+    }
+
+    .pokemon-sprite-container {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .pokemon-sprite.selected {
+        width: 100px;
+        height: 100px;
+        object-fit: contain;
+        image-rendering: pixelated;
+        filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.4));
+        animation: bobbing 2s ease-in-out infinite;
+    }
+
+    @keyframes bobbing {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+
+    .pokemon-info {
+        margin-bottom: 20px;
+    }
+
+    .pokemon-name {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 5px;
+    }
+
+    :global(.theme-dark) .pokemon-name {
+        color: #e2e8f0;
+    }
+
+    .pokemon-level {
+        font-size: 1.1rem;
+        color: #4a5568;
+        margin-bottom: 8px;
+    }
+
+    :global(.theme-dark) .pokemon-level {
+        color: #a0aec0;
+    }
+
+    .pokemon-type {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: #fff;
+        text-transform: uppercase;
+    }
+
+    .pokemon-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .stat {
+        text-align: center;
+        background: rgba(0, 0, 0, 0.05);
+        padding: 10px;
         border-radius: 8px;
-        padding: 15px;
-        text-align: center;
     }
 
-    .fighter-header {
+    :global(.theme-dark) .stat {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .stat-name {
+        display: block;
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-bottom: 5px;
+    }
+
+    :global(.theme-dark) .stat-name {
+        color: #9ca3af;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #1f2937;
+    }
+
+    :global(.theme-dark) .stat-value {
+        color: #f3f4f6;
+    }
+
+    .ml-performance {
+        margin-top: 20px;
+    }
+
+    .performance-bar {
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 10px;
-        justify-content: center;
-    }
-
-    .fighter-emoji {
-        font-size: 1.5rem;
-    }
-
-    .fighter-stats {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 10px;
         font-size: 0.9rem;
-        color: #ccc;
     }
 
-    .ml-stats {
-        margin-top: 8px;
-        color: #999;
-        text-align: center;
+    .bar {
+        flex: 1;
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
     }
 
-    .vs-divider {
+    .fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    .vs-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+    }
+
+    .vs-circle {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2rem;
+        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    .vs-text {
+        font-size: 1.5rem;
         font-weight: bold;
-        color: #ff6b6b;
+        color: #fff;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     }
 
-    .loading-indicator {
-        text-align: center;
-        padding: 20px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        border: 1px solid #333;
-    }
-
-    .spinner {
+    .vs-lightning {
         font-size: 2rem;
-        animation: spin 1s linear infinite;
+        animation: lightning 1s ease-in-out infinite;
     }
 
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
     }
 
-    /* Responsive */
-    @media (max-width: 768px) {
+    @keyframes lightning {
+        0%, 100% { transform: rotate(0deg) scale(1); }
+        25% { transform: rotate(-10deg) scale(1.2); }
+        75% { transform: rotate(10deg) scale(1.2); }
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .pokeball-loading {
+        text-align: center;
+        color: #fff;
+    }
+
+    .pokeball {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 20px;
+        position: relative;
+        animation: bounce 1s ease-in-out infinite;
+    }
+
+    .pokeball-top {
+        width: 100%;
+        height: 50%;
+        background: #ff4444;
+        border-radius: 60px 60px 0 0;
+        border: 3px solid #333;
+        border-bottom: none;
+    }
+
+    .pokeball-bottom {
+        width: 100%;
+        height: 50%;
+        background: #fff;
+        border-radius: 0 0 60px 60px;
+        border: 3px solid #333;
+        border-top: none;
+    }
+
+    .pokeball-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        border: 3px solid #333;
+        border-radius: 50%;
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+
+    .type-ensemble { background: #22c55e; }
+    .type-neural { background: #3b82f6; }
+    .type-geometric { background: #ef4444; }
+    .type-boosting { background: #f59e0b; }
+    .type-probabilistic { background: #ec4899; }
+    .type-clustering { background: #8b5cf6; }
+
+    @media (max-width: 1200px) {
         .selection-grid {
             grid-template-columns: 1fr;
-            gap: 15px;
+            gap: 30px;
         }
 
-        .vs-divider {
+        .vs-section {
             order: -1;
         }
 
-        .algorithm-grid {
-            grid-template-columns: 1fr;
+        .pokemon-selection-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .selection-header h1 {
+            font-size: 2rem;
+        }
+
+        .pokemon-selection-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .trainer-section {
+            padding: 20px;
         }
     }
 </style>
