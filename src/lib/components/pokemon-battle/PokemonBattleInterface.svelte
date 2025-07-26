@@ -17,48 +17,40 @@
 
     const dispatch = createEventDispatcher();
 
-    // Vérification de sécurité
     if (!playerFighter || !aiFighter) {
         console.error('Fighters not properly initialized:', { playerFighter, aiFighter });
     }
 
-    // Battle state
     let isPlayerTurn = true;
     let currentTurn = 1;
     let battleEnded = false;
     let winner: string | null = null;
-    // Moves and PP
     let playerMoves: Move[] = [];
     let aiMoves: Move[] = [];
     let playerPP: Record<string, number> = {};
     let aiPP: Record<string, number> = {};
 
-    // Animation state
     let playerAnimating = false;
     let aiAnimating = false;
     let playerAnimationType: 'none' | 'slide-in' | 'damage' | 'faint' | 'attack' = 'none';
     let aiAnimationType: 'none' | 'slide-in' | 'damage' | 'faint' | 'attack' = 'none';
 
-    // UI state
     let showMoveSelection = false;
     let battleMessage = '';
     let isProcessingTurn = false;
 
-    // AI
     let combatAI: CombatAI;
     let aiThinking = false;
 
     onMount(() => {
         initializeBattle();
-        theme.init(); // Initialize theme
+        theme.init();
     });
 
     function initializeBattle() {
-        // Initialize moves
         playerMoves = getMovesByAlgorithm(playerFighter.name);
         aiMoves = getMovesByAlgorithm(aiFighter.name);
 
-        // Initialize PP
         playerMoves.forEach(move => {
             playerPP[move.name] = move.pp;
         });
@@ -66,23 +58,18 @@
             aiPP[move.name] = move.pp;
         });
 
-        // Initialize AI
         combatAI = new CombatAI(aiLevel);
-
-        // Start battle sequence
         startBattleSequence();
     }
 
     async function startBattleSequence() {
         battleMessage = `${aiFighter.name} wants to battle!`;
 
-        // Slide in enemy first
         aiAnimationType = 'slide-in';
         aiAnimating = true;
 
         await new Promise(resolve => setTimeout(resolve, 400));
 
-        // Then slide in player
         playerAnimationType = 'slide-in';
         playerAnimating = true;
 
@@ -92,7 +79,6 @@
 
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Start first turn
         startPlayerTurn();
     }
 
@@ -109,17 +95,14 @@
         isProcessingTurn = true;
         showMoveSelection = false;
 
-        // Player attacks
         await executePlayerMove(move);
 
         if (battleEnded) return;
 
-        // AI turn
         await executeAITurn();
 
         if (battleEnded) return;
 
-        // Next turn
         currentTurn++;
         startPlayerTurn();
     }
@@ -127,16 +110,13 @@
     async function executePlayerMove(move: Move) {
         battleMessage = `${playerFighter.name} used ${move.name}!`;
 
-        // Player attack animation
         playerAnimationType = 'attack';
         playerAnimating = true;
 
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Reduce PP
         playerPP[move.name]--;
 
-        // Calculate damage
         const damage = calculateDamage(playerFighter, aiFighter, move);
         const effectiveness = getTypeMultiplier(
             ALGORITHM_TYPES[playerFighter.name],
@@ -158,10 +138,8 @@
             finalDamage *= effectiveness;
             finalDamage = Math.round(finalDamage);
 
-            // Apply damage
             aiFighter.health = Math.max(0, aiFighter.health - finalDamage);
 
-            // AI damage animation
             aiAnimationType = 'damage';
             aiAnimating = true;
 
@@ -176,7 +154,6 @@
 
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Check if AI fainted
         if (aiFighter.health <= 0) {
             aiAnimationType = 'faint';
             aiAnimating = true;
@@ -195,10 +172,8 @@
         aiThinking = true;
         battleMessage = `${aiFighter.name} is thinking...`;
 
-        // AI thinking delay
         await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // Get AI decision
         const combatState: CombatState = {
             playerFighter,
             aiFighter,
@@ -216,16 +191,13 @@
         aiThinking = false;
         battleMessage = `${aiFighter.name} used ${move.name}!`;
 
-        // AI attack animation
         aiAnimationType = 'attack';
         aiAnimating = true;
 
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Reduce AI PP
         aiPP[move.name]--;
 
-        // Calculate damage
         const damage = calculateDamage(aiFighter, playerFighter, move);
         const effectiveness = getTypeMultiplier(
             ALGORITHM_TYPES[aiFighter.name],
@@ -247,10 +219,8 @@
             finalDamage *= effectiveness;
             finalDamage = Math.round(finalDamage);
 
-            // Apply damage
             playerFighter.health = Math.max(0, playerFighter.health - finalDamage);
 
-            // Player damage animation
             playerAnimationType = 'damage';
             playerAnimating = true;
 
@@ -265,7 +235,6 @@
 
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Check if player fainted
         if (playerFighter.health <= 0) {
             playerAnimationType = 'faint';
             playerAnimating = true;
@@ -299,7 +268,6 @@
             battleMessage = `You lost the battle!`;
         }
 
-        // Dispatch battle end event
         setTimeout(() => {
             dispatch('battle-end', {
                 winner: winnerName,
@@ -316,11 +284,9 @@
 </script>
 
 <div class="pokemon-battle-interface">
-    <!-- Battle Field Background -->
     <div class="battle-field">
         <BattleBackground />
 
-        <!-- Pokemon Sprites -->
         <PokemonSprite
                 fighter={aiFighter}
                 isPlayer={false}
@@ -337,7 +303,6 @@
                 bind:isAnimating={playerAnimating}
         />
 
-        <!-- Health Bars -->
         <HealthBar
                 fighter={aiFighter}
                 isPlayer={false}
@@ -349,9 +314,7 @@
         />
     </div>
 
-    <!-- Battle UI -->
     <div class="battle-ui">
-        <!-- Battle Message Box -->
         <div class="message-box">
             <div class="message-text">
                 {battleMessage}
@@ -363,7 +326,6 @@
             </div>
         </div>
 
-        <!-- Move Selection Menu -->
         {#if showMoveSelection && !battleEnded}
             <div class="move-menu">
                 <div class="move-menu-header">
@@ -391,7 +353,6 @@
             </div>
         {/if}
 
-        <!-- Battle End Screen -->
         {#if battleEnded}
             <div class="battle-end">
                 <div class="battle-result">
@@ -408,7 +369,6 @@
         {/if}
     </div>
 
-    <!-- Theme Toggle - Déplacé à droite -->
     <button class="theme-toggle" on:click={theme.toggle}>
         {$theme === 'light' ? '🌙' : '☀️'}
     </button>
@@ -427,7 +387,7 @@
     .battle-field {
         position: relative;
         width: 100%;
-        height: 55%;
+        height: 60%;
         overflow: hidden;
     }
 
@@ -436,7 +396,7 @@
         bottom: 0;
         left: 0;
         right: 0;
-        height: 45%;
+        height: 40%;
         background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.95) 100%);
         border-top: 3px solid #4a5568;
     }
@@ -445,12 +405,12 @@
         background: #f7fafc;
         border: 3px solid #2d3748;
         border-radius: 8px;
-        margin: 10px 15px;
-        padding: 10px 15px;
+        margin: 8px 15px;
+        padding: 8px 12px;
         color: #2d3748;
         font-weight: bold;
-        font-size: 1rem;
-        min-height: 40px;
+        font-size: 0.9rem;
+        min-height: 35px;
         display: flex;
         align-items: center;
     }
@@ -480,7 +440,7 @@
         border: 3px solid #4a5568;
         border-radius: 8px;
         margin: 0 15px 10px;
-        padding: 10px;
+        padding: 8px;
         color: #2d3748;
     }
 
@@ -494,20 +454,20 @@
     .moves-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 6px;
+        gap: 4px;
     }
 
     .move-button {
         background: #f7fafc;
         border: 2px solid #cbd5e0;
         border-radius: 6px;
-        padding: 6px;
+        padding: 4px 6px;
         cursor: pointer;
         transition: all 0.2s ease;
         text-align: left;
         font-family: inherit;
         font-weight: bold;
-        min-height: 65px;
+        min-height: 55px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -527,8 +487,8 @@
 
     .move-name {
         color: #2d3748;
-        margin-bottom: 3px;
-        font-size: 0.85rem;
+        margin-bottom: 2px;
+        font-size: 0.8rem;
         line-height: 1.1;
     }
 
@@ -536,7 +496,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 0.7rem;
+        font-size: 0.65rem;
     }
 
     .move-type {
@@ -613,7 +573,6 @@
         background: white;
     }
 
-    /* Type colors */
     .type-ensemble { background: #22c55e; }
     .type-neural { background: #3b82f6; }
     .type-geometric { background: #ef4444; }
@@ -621,7 +580,6 @@
     .type-probabilistic { background: #ec4899; }
     .type-clustering { background: #8b5cf6; }
 
-    /* Theme adjustments */
     :global(.theme-dark) .message-box {
         background: #2d3748;
         color: #e2e8f0;
@@ -649,40 +607,43 @@
         color: #e2e8f0;
     }
 
-    /* Responsive */
+    :global(.theme-dark) .move-menu-header {
+        color: #e2e8f0;
+    }
+
     @media (max-width: 768px) {
         .battle-ui {
-            height: 50%;
+            height: 45%;
         }
 
         .battle-field {
-            height: 50%;
+            height: 55%;
         }
 
         .message-box {
-            margin: 8px 10px;
-            padding: 8px 12px;
-            font-size: 0.9rem;
-            min-height: 35px;
+            margin: 6px 10px;
+            padding: 6px 10px;
+            font-size: 0.85rem;
+            min-height: 30px;
         }
 
         .move-menu {
             margin: 0 10px 8px;
-            padding: 8px;
+            padding: 6px;
         }
 
         .moves-grid {
             grid-template-columns: 1fr;
-            gap: 5px;
+            gap: 3px;
         }
 
         .move-button {
-            min-height: 55px;
-            padding: 5px;
+            min-height: 50px;
+            padding: 3px 5px;
         }
 
         .move-name {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
         }
 
         .theme-toggle {

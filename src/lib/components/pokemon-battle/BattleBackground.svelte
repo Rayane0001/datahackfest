@@ -6,25 +6,24 @@
 </script>
 
 <div class="battle-background">
-    <!-- Main battlefield background -->
     <img
             src={backgroundSprites.field}
             alt="Battle field background"
             class="field-background"
     />
 
-    <!-- Player/Ally grass patch (bottom left) -->
     <img
             src={backgroundSprites.playerGrass}
             alt="Ally grass patch"
-            class="grass-patch ally-grass"
+            class="grass-patch"
+            style="--x: 25%; --y: 85%; --size: 200px;"
     />
 
-    <!-- Enemy grass patch (top right) -->
     <img
             src={backgroundSprites.enemyGrass}
             alt="Enemy grass patch"
-            class="grass-patch enemy-grass"
+            class="grass-patch"
+            style="--x: 62%; --y: 45%; --size: 160px;"
     />
 </div>
 
@@ -51,40 +50,13 @@
 
     .grass-patch {
         position: absolute;
+        left: var(--x);
+        top: var(--y);
+        width: var(--size);
+        height: calc(var(--size) * 0.6);
+        object-fit: contain;
         image-rendering: pixelated;
         z-index: 2;
-    }
-
-    .ally-grass {
-        bottom: 10%;
-        left: 8%;
-        width: 200px;
-        height: 120px;
-        object-fit: contain;
-    }
-
-    .enemy-grass {
-        top: 15%;
-        right: 20%;
-        width: 160px;
-        height: 100px;
-        object-fit: contain;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .ally-grass {
-            bottom: 10%;
-            left: 10%;
-            width: 160px;
-            height: 110px;
-        }
-
-        .enemy-grass {
-            top: 10%;
-            right: 15%;
-            width: 140px;
-            height: 95px;
-        }
+        transform: translate(-50%, -50%);
     }
 </style>

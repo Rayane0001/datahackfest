@@ -5,7 +5,7 @@
     import type { Fighter } from '$lib/ml/algorithms';
 
     export let fighter: Fighter;
-    export let isPlayer: boolean = false; // false = enemy (back sprite), true = player (front sprite)
+    export let isPlayer: boolean = false;
     export let isVisible: boolean = true;
     export let isAnimating: boolean = false;
     export let animationType: 'none' | 'slide-in' | 'damage' | 'faint' | 'attack' = 'none';
@@ -18,13 +18,11 @@
     $: currentSprite = isPlayer ? sprites.back : sprites.front;
     $: currentHealthPercentage = (fighter.health / fighter.maxHealth) * 100;
 
-    // Handle animations
     $: if (animationType !== 'none' && isAnimating) {
         handleAnimation(animationType);
     }
 
     onMount(() => {
-        // Slide in animation when component mounts
         if (isVisible) {
             setTimeout(() => {
                 animationType = 'slide-in';
@@ -35,8 +33,6 @@
 
     function handleAnimation(type: typeof animationType) {
         animationClass = `animate-${type}`;
-
-        // Reset animation after it completes
         const duration = getAnimationDuration(type);
         setTimeout(() => {
             animationClass = '';
@@ -54,7 +50,6 @@
         }
     }
 
-    // Trigger damage flash when health decreases
     $: if (healthPercentage !== currentHealthPercentage && currentHealthPercentage < healthPercentage) {
         healthPercentage = currentHealthPercentage;
         if (!isAnimating && animationType === 'none') {
@@ -63,7 +58,6 @@
         }
     }
 
-    // Trigger faint animation when health reaches 0
     $: if (fighter.health <= 0 && animationType !== 'faint') {
         animationType = 'faint';
         isAnimating = true;
@@ -71,9 +65,8 @@
 </script>
 
 <div
-        class="pokemon-sprite-container"
-        class:player-position={isPlayer}
-        class:enemy-position={!isPlayer}
+        class="sprite-wrapper"
+        style="--x: {isPlayer ? '25' : '62'}%; --y: {isPlayer ? '72' : '34'}%;"
         class:visible={isVisible}
         class:fainted={fighter.health <= 0}
 >
@@ -81,64 +74,43 @@
             bind:this={spriteElement}
             src={currentSprite}
             alt="{fighter.name} sprite"
-            class="pokemon-sprite {animationClass}"
-            class:player-sprite={isPlayer}
-            class:enemy-sprite={!isPlayer}
+            class="sprite-image {animationClass}"
+            style="transform: scale({isPlayer ? '1.4' : '1.0'});"
             on:error={() => console.warn(`Failed to load sprite: ${currentSprite}`)}
     />
 
-    <!-- Pokemon shadow/ground circle -->
-    <div class="pokemon-shadow" class:fainted-shadow={fighter.health <= 0}></div>
+    <div class="sprite-shadow" class:fainted-shadow={fighter.health <= 0}></div>
 
-    <!-- Status effect indicators -->
     {#if fighter.health > 0}
-        <div class="status-indicators">
-            <!-- Add status effect icons here if needed -->
-        </div>
+        <div class="status-indicators"></div>
     {/if}
 </div>
 
 <style>
-    .pokemon-sprite-container {
+    .sprite-wrapper {
         position: absolute;
+        left: var(--x);
+        top: var(--y);
         transition: all 0.3s ease;
         z-index: 5;
-    }
-
-    .player-position {
-        bottom: 10%;
-        left: 10.5%;
-        transform: scale(1.4);
-    }
-
-    .enemy-position {
-        top: 15%;
-        right: 17%;
-        transform: scale(1.0);
+        transform: translate(-50%, -50%);
     }
 
     .visible {
         opacity: 1;
     }
 
-    .pokemon-sprite {
+    .sprite-image {
         width: 120px;
         height: 120px;
         object-fit: contain;
-        image-rendering: pixelated; /* Preserve pixel art quality */
+        image-rendering: pixelated;
         filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.3));
         transition: all 0.2s ease;
+        display: block;
     }
 
-    .player-sprite {
-        transform: scaleX(1); /* Player de dos (back sprite) */
-    }
-
-    .enemy-sprite {
-        transform: scaleX(1); /* Enemy de face (front sprite) */
-    }
-
-    .pokemon-shadow {
+    .sprite-shadow {
         position: absolute;
         bottom: -10px;
         left: 50%;
@@ -168,7 +140,6 @@
         gap: 4px;
     }
 
-    /* Animations */
     .animate-slide-in {
         animation: slideIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
@@ -188,21 +159,6 @@
     @keyframes slideIn {
         0% {
             transform: translateX(100px) scale(0.8);
-            opacity: 0;
-        }
-        100% {
-            transform: translateX(0) scale(1);
-            opacity: 1;
-        }
-    }
-
-    .enemy-position .animate-slide-in {
-        animation: slideInEnemy 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-
-    @keyframes slideInEnemy {
-        0% {
-            transform: translateX(-100px) scale(0.8);
             opacity: 0;
         }
         100% {
@@ -238,22 +194,6 @@
         }
     }
 
-    .enemy-position .animate-attack {
-        animation: attackEnemy 0.6s ease-in-out;
-    }
-
-    @keyframes attackEnemy {
-        0%, 100% {
-            transform: translateX(0) scale(1);
-        }
-        30% {
-            transform: translateX(-20px) scale(1.1);
-        }
-        60% {
-            transform: translateX(10px) scale(0.95);
-        }
-    }
-
     @keyframes faint {
         0% {
             transform: translateY(0) rotate(0deg);
@@ -266,31 +206,6 @@
         100% {
             transform: translateY(60px) rotate(90deg);
             opacity: 0.3;
-        }
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .player-position {
-            bottom: 12%;
-            left: 10%;
-            transform: scale(1.1);
-        }
-
-        .enemy-position {
-            top: 15%;
-            right: 20%;
-            transform: scale(0.8);
-        }
-
-        .pokemon-sprite {
-            width: 100px;
-            height: 100px;
-        }
-
-        .pokemon-shadow {
-            width: 50px;
-            height: 16px;
         }
     }
 </style>

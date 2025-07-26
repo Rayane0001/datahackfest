@@ -12,18 +12,17 @@
 
     $: healthPercentage = (fighter.health / fighter.maxHealth) * 100;
     $: healthColor = getHealthColor(healthPercentage);
-    $: level = Math.floor(fighter.attack + fighter.defense + fighter.speed) || 50; // Fake level calculation
+    $: level = Math.floor(fighter.attack + fighter.defense + fighter.speed) || 50;
 
-    // Animate health bar when health changes
     $: if (fighter.health !== previousHealth) {
         animateHealthChange();
         previousHealth = fighter.health;
     }
 
     function getHealthColor(percentage: number): string {
-        if (percentage > 50) return '#4ade80'; // Green
-        if (percentage > 25) return '#fbbf24'; // Yellow
-        return '#ef4444'; // Red
+        if (percentage > 50) return '#4ade80';
+        if (percentage > 25) return '#fbbf24';
+        return '#ef4444';
     }
 
     function animateHealthChange() {
@@ -44,7 +43,6 @@
         class:enemy-bar={!isPlayer}
         class:animating={isAnimating}
 >
-    <!-- Pokemon info section -->
     <div class="pokemon-info">
         <div class="name-level">
             <span class="pokemon-name">{fighter.name}</span>
@@ -52,7 +50,6 @@
         </div>
 
         {#if !isPlayer}
-            <!-- Enemy doesn't show exact HP numbers -->
             <div class="hp-section">
                 <div class="hp-label">HP</div>
                 <div class="hp-bar-wrapper">
@@ -65,7 +62,6 @@
                 </div>
             </div>
         {:else}
-            <!-- Player shows exact HP numbers -->
             <div class="hp-section">
                 <div class="hp-label">HP</div>
                 <div class="hp-bar-wrapper">
@@ -85,15 +81,12 @@
         {/if}
     </div>
 
-    <!-- Status condition indicators -->
     <div class="status-conditions">
-        <!-- Add status icons here if fighter has status effects -->
         {#if fighter.health <= 0}
             <div class="status-icon fainted">FNT</div>
         {/if}
     </div>
 
-    <!-- Detailed stats (expandable) -->
     {#if showDetailedStats}
         <div class="detailed-stats">
             <div class="stat-row">
@@ -122,21 +115,21 @@
         font-weight: bold;
         color: #212529;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        min-width: 280px;
+        min-width: 260px;
         transition: all 0.3s ease;
         position: absolute;
         z-index: 15;
     }
 
     .player-bar {
-        bottom: 15px;
-        right: 20px;
+        bottom: 25px;
+        right: 25px;
         background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
     }
 
     .enemy-bar {
-        top: 20px;
-        left: 20px;
+        top: 25px;
+        left: 25px;
         background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
     }
 
@@ -290,7 +283,6 @@
         font-weight: bold;
     }
 
-    /* Theme adjustments */
     :global(.theme-dark) .health-bar-container {
         background: #2d3748;
         color: #e2e8f0;
@@ -318,21 +310,20 @@
         border-color: #718096;
     }
 
-    /* Responsive adjustments */
     @media (max-width: 768px) {
         .health-bar-container {
-            min-width: 220px;
+            min-width: 200px;
             padding: 8px 12px;
         }
 
         .player-bar {
-            bottom: 10px;
-            right: 10px;
+            bottom: 15px;
+            right: 15px;
         }
 
         .enemy-bar {
-            top: 10px;
-            left: 10px;
+            top: 15px;
+            left: 15px;
         }
 
         .pokemon-name {
