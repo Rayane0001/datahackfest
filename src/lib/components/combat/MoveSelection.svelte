@@ -314,6 +314,33 @@
         justify-content: space-between;
     }
 
+    .move-button {
+        height: auto; /* Allow dynamic height */
+        min-height: 100px; /* Taller minimum height for better breathing room */
+        padding: 12px 10px 16px; /* Top, horizontal, bottom padding — bottom is larger */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .move-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 22px; /* add this line */
+}
+
+.effectiveness-indicator {
+    position: absolute;
+    bottom: 4px;     /* was 6px before */
+    right: 6px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: bold;
+    z-index: 5;
+}
+
     .move-button.can-use:hover {
         border-color: #4ecdc4;
         background: rgba(78, 205, 196, 0.1);
