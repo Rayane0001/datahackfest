@@ -3,6 +3,7 @@
     import type { Move } from '$lib/data/moves';
     import type { Fighter } from '$lib/ml/algorithms';
     import { getTypeMultiplier, ALGORITHM_TYPES } from '$lib/data/type-advantages';
+    import { playAudio } from '$lib/stores/audioPlayer';
 
     export let playerFighter: Fighter;
     export let opponentFighter: Fighter;
@@ -99,7 +100,10 @@
                     class:no-pp={ppCounters[move.name] <= 0}
                     class:disabled={!canUse}
                     disabled={!canUse}
-                    on:click={() => handleMoveSelect(move)}
+                    on:click={() => {
+                        handleMoveSelect(move)
+                        playAudio(`/audio/button.mp3`)
+                        }}
                     on:mouseenter={(e) => handleMoveHover(e, move)}
                     on:mouseleave={handleMoveLeave}
             >

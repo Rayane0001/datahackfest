@@ -2,6 +2,7 @@
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
     import { DatasetAnalyzer } from '$lib/ml/dataset-analyzer';
+    import { playAudio } from '$lib/stores/audioPlayer';
 
     const dispatch = createEventDispatcher();
 
@@ -102,7 +103,10 @@
                         <div class="upload-icon">📊</div>
                         <h3>Upload Dataset</h3>
                         <p>Drop your CSV file here or click to select</p>
-                        <button class="upload-button" on:click={() => document.getElementById('file-input')?.click()}>
+                        <button class="upload-button" on:click={() => {
+                            document.getElementById('file-input')?.click()
+                            playAudio('/audio/super_mario.mp3', true);
+                            }}>
                             Choose Dataset
                         </button>
                         <input

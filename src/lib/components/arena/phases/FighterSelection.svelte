@@ -4,6 +4,8 @@
     import { getAlgorithmSprites } from '$lib/stores/theme';
     import type { Fighter } from '$lib/ml/algorithms';
     import type { CombatEngine } from '$lib/ml/combat';
+    import { playAudio } from '$lib/stores/audioPlayer';
+
 
     export let combatEngine: CombatEngine;
     export let currentDataset: any;
@@ -119,7 +121,7 @@
                         <button
                                 class="pokemon-card"
                                 style="--type-color: {algo.color}"
-                                on:click={() => selectFighter(1, algo)}
+                                on:click={() => {selectFighter(1, algo); playAudio(`/audio/${algo.type}.mp3`, true) }}
                                 disabled={isLoading}
                         >
                             <div class="card-sprite-container">

@@ -10,6 +10,7 @@
     import BattleBackground from './BattleBackground.svelte';
     import PokemonSprite from './PokemonSprite.svelte';
     import HealthBar from './HealthBar.svelte';
+    import { playAudio } from '$lib/stores/audioPlayer';
 
     export let playerFighter: Fighter;
     export let aiFighter: Fighter;
@@ -174,12 +175,13 @@
     }
 
     async function handleMoveSelection(move: Move) {
+
         if (isProcessingTurn || !isPlayerTurn) return;
 
         isProcessingTurn = true;
         showMoveSelection = false;
         showMoveTooltip = false;
-
+        playAudio(`/audio/button.mp3`)
         await executePlayerMove(move);
 
         if (battleEnded) return;
@@ -353,8 +355,11 @@
         showMoveTooltip = false;
 
         if (winnerName === battlePlayerFighter.name) {
+            playAudio(`/audio/victory.mp3`)
             battleMessage = `You won the battle!`;
         } else {
+            playAudio(`/audio/loos.mp3`)
+
             battleMessage = `You lost the battle!`;
         }
 
@@ -369,6 +374,7 @@
     }
 
     function resetBattle() {
+        playAudio(`/audio/fight.mp3`) 
         isInitialized = false;
         resetAndInitializeBattle();
     }
