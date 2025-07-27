@@ -33,12 +33,12 @@
 
             {#if showPokedexButton}
                 <button class="pokedex-button" on:click={handlePokedex}>
-                    📖 Algorithm Database
+                    <img src="/icons/pokedex.png" style="height:30px" /> Algorithm Database
                 </button>
             {/if}
 
             <div class="current-dataset">
-                📊 {datasetAnalysis.name} (Level {datasetAnalysis.difficulty})
+                <img src="/icons/dataset.png" style="height:30px" /> {datasetAnalysis.name} (Level {datasetAnalysis.difficulty})
             </div>
         </div>
     {:else}

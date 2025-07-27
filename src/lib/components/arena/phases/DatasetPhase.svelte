@@ -16,7 +16,7 @@
 
 <div class="dataset-phase">
     <div class="phase-header">
-        <h1>⚔️ Predictive Combat Arena</h1>
+        <h1><img src="icons/battle.png" style="height:60px" /> Predictive Combat Arena</h1>
         <p>Upload your dataset to begin the ultimate ML battle!</p>
     </div>
 

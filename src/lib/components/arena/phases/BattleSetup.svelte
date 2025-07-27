@@ -48,7 +48,7 @@
 
 <div class="battle-setup-screen">
     <div class="setup-header">
-        <h1>⚔️ Battle Configuration</h1>
+        <h1><img src="/icons/battle.png" style="height:45px" /> Battle Configuration</h1>
         <p class="subtitle">Choose your battle mode and difficulty</p>
     </div>
 
@@ -68,7 +68,7 @@
                         <div class="fighter-name">{fighter1.name}</div>
                         <div class="fighter-level">Lv. {getLevel(fighter1)}</div>
                         <div class="fighter-type type-{fighter1.type}">{fighter1.type}</div>
-                        <div class="trainer-label">👤 Player</div>
+                        <div class="trainer-label"><img src="/icons/player.png" style="height:15px" /></div>
                     </div>
                 </div>
             {:else}
@@ -81,9 +81,7 @@
 
         <div class="vs-lightning-container">
             <div class="vs-lightning">
-                <div class="lightning-bolt">⚡</div>
-                <div class="vs-text">VS</div>
-                <div class="lightning-bolt">⚡</div>
+                <img src="/icons/vs.png" style="height:90px" />
             </div>
             {#if fighter1 && fighter2}
                 <div class="type-matchup">
@@ -111,7 +109,7 @@
                         <div class="fighter-name">{fighter2.name}</div>
                         <div class="fighter-level">Lv. {getLevel(fighter2)}</div>
                         <div class="fighter-type type-{fighter2.type}">{fighter2.type}</div>
-                        <div class="trainer-label">🤖 AI</div>
+                        <div class="trainer-label"><img src="/icons/ai.png" style="height:15px" /></div>
                     </div>
                 </div>
             {:else}
@@ -127,16 +125,20 @@
     <div class="config-panels">
         <!-- Battle Mode Selection -->
         <div class="config-panel">
-            <h3>🎮 Battle Mode</h3>
+            <h3><img src="/icons/battle-mode.png" style="height:45px"/> Battle Mode</h3>
             <div class="mode-selection">
                 <button
                         class="mode-card"
                         class:selected={battleMode === 'pokemon'}
                         on:click={() => setBattleMode('pokemon')}
                 >
-                    <div class="mode-icon">⚔️</div>
+                    <div class="mode-icon">
+                        <img src="/icons/pokemon-battle.png" style="height:90px" />
+                    </div>
                     <div class="mode-info">
-                        <div class="mode-title">Pokemon Battle</div>
+                        <div class="mode-title">
+                            Pokemon Battle
+                        </div>
                         <div class="mode-description">Classic battle system with sprites, animations, and authentic combat mechanics</div>
                     </div>
                     <div class="mode-features">
@@ -151,7 +153,9 @@
                         class:selected={battleMode === 'tactical'}
                         on:click={() => setBattleMode('tactical')}
                 >
-                    <div class="mode-icon">🎯</div>
+                    <div class="mode-icon">
+                        <img src="/icons/tactical-battle.png" style="height:90px" />
+                    </div>
                     <div class="mode-info">
                         <div class="mode-title">Tactical Mode</div>
                         <div class="mode-description">Advanced combat with detailed statistics, battle logs, and in-depth ML analysis</div>
@@ -167,14 +171,16 @@
 
         <!-- AI Difficulty Selection -->
         <div class="config-panel">
-            <h3>🤖 AI Difficulty</h3>
+            <h3><img src="/icons/ai.png" style="height:45px" /> AI Difficulty</h3>
             <div class="difficulty-selection">
                 <button
                         class="difficulty-card"
                         class:selected={selectedAILevel === 'easy'}
                         on:click={() => setAILevel('easy')}
                 >
-                    <div class="difficulty-icon">😊</div>
+                    <div class="difficulty-icon">
+                        <img src="/icons/easy-difficulty.png" style="height:90px" />
+                    </div>
                     <div class="difficulty-info">
                         <div class="difficulty-title">Easy</div>
                         <div class="difficulty-description">Random moves, basic strategy, perfect for learning</div>
@@ -186,7 +192,9 @@
                         class:selected={selectedAILevel === 'normal'}
                         on:click={() => setAILevel('normal')}
                 >
-                    <div class="difficulty-icon">🎯</div>
+                    <div class="difficulty-icon">
+                        <img src="/icons/medium-difficulty.png" style="height:90px" />
+                    </div>
                     <div class="difficulty-info">
                         <div class="difficulty-title">Normal</div>
                         <div class="difficulty-description">Tactical thinking, considers type advantages</div>
@@ -198,7 +206,9 @@
                         class:selected={selectedAILevel === 'hard'}
                         on:click={() => setAILevel('hard')}
                 >
-                    <div class="difficulty-icon">🧠</div>
+                    <div class="difficulty-icon">
+                        <img src="/icons/hard-difficulty.png" style="height:90px" />
+                    </div>
                     <div class="difficulty-info">
                         <div class="difficulty-title">Hard</div>
                         <div class="difficulty-description">Expert strategy, pattern prediction, optimal play</div>
@@ -222,7 +232,7 @@
         >
             <div class="button-content">
                 <div class="button-icon">
-                    {#if battleMode === 'pokemon'}⚔️{:else}🎯{/if}
+                    <img src="/icons/fight.png" style="height:30px" />
                 </div>
                 <div class="button-text">
                     {#if battleMode === 'pokemon'}
@@ -545,11 +555,6 @@
     }
 
     .mode-icon,
-    .difficulty-icon {
-        font-size: 2.5rem;
-        flex-shrink: 0;
-    }
-
     .mode-info,
     .difficulty-info {
         flex: 1;
@@ -696,6 +701,12 @@
         .fighter-card {
             padding: 20px;
         }
+
+        .difficulty-icon img {
+  height: 120px;  /* or 140px — whatever looks right */
+  width: auto;
+  object-fit: contain;
+}
 
         .battle-controls {
             flex-direction: column;

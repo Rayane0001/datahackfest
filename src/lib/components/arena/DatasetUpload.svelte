@@ -100,7 +100,7 @@
                     </div>
                 {:else}
                     <div class="upload-content">
-                        <div class="upload-icon">📊</div>
+                        <div class="upload-icon"><img src="/icons/upload-dataset.png" style="height:90px" /></div>
                         <h3>Upload Dataset</h3>
                         <p>Drop your CSV file here or click to select</p>
                         <button class="upload-button" on:click={() => {

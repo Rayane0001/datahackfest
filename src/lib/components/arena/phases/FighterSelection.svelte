@@ -88,7 +88,7 @@
         <!-- Player 1 Selection -->
         <div class="trainer-section player-section">
             <div class="trainer-header">
-                <h2>👤 Player 1 (You)</h2>
+                <h2><img src="/icons/player.png" style="height:30px" /> Player 1 (You)</h2>
             </div>
 
             {#if fighter1}
@@ -179,7 +179,7 @@
         <!-- Player 2 Selection -->
         <div class="trainer-section ai-section">
             <div class="trainer-header">
-                <h2>🤖 Player 2 (AI)</h2>
+                <h2><img src="/icons/ai.png" style="height:30px" /> Player 2 (AI)</h2>
             </div>
 
             {#if fighter2}
