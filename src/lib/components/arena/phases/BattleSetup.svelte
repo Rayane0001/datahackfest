@@ -2,9 +2,9 @@
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
     import { getAlgorithmSprites } from '$lib/stores/theme';
+    import { playAudio } from '$lib/stores/audioPlayer';
     import type { Fighter } from '$lib/ml/algorithms';
     import type { AILevel } from '$lib/ai/combat-ai';
-
 
     export let fighter1: Fighter | null;
     export let fighter2: Fighter | null;
@@ -13,22 +13,34 @@
 
     const dispatch = createEventDispatcher();
 
+    // Local state for selections
+    let localBattleMode: 'tactical' | 'pokemon' = battleMode;
+    let localAILevel: AILevel = selectedAILevel;
+
+    // Update local state when props change
+    $: localBattleMode = battleMode;
+    $: localAILevel = selectedAILevel;
+
     function setBattleMode(mode: 'tactical' | 'pokemon') {
-        playAudio('/audio/button_real.wav')
-        battleMode = mode;
+        playAudio('/audio/button_real.wav');
+        localBattleMode = mode;
     }
 
     function setAILevel(level: AILevel) {
-        playAudio('/audio/button_real.wav')
-        selectedAILevel = level;
+        playAudio('/audio/button_real.wav');
+        localAILevel = level;
     }
 
     function startBattle() {
         if (!fighter1 || !fighter2) return;
+        playAudio(`/audio/battle.wav`);
+        setTimeout(() => {
+            playAudio("/audio/fight.mp3");
+        }, 250);
 
         dispatch('battle-start', {
-            mode: battleMode,
-            aiLevel: selectedAILevel
+            mode: localBattleMode,
+            aiLevel: localAILevel
         });
     }
 
@@ -83,12 +95,9 @@
                 <div class="type-matchup">
                     <span class="matchup-text">Type Matchup</span>
                     <div class="matchup-display">
-                        <span class={`type-${fighter1.type} type-badge `}>{fighter1.type}</span>
-
+                        <span class="type-badge type-{fighter1.type}">{fighter1.type}</span>
                         <span class="vs-small">vs</span>
-                        <span class={` type-${fighter2.type} type-badge`}>{fighter2.type}</span>
-                        {console.log(`type-${fighter2.type}`)}
-
+                        <span class="type-badge type-{fighter2.type}">{fighter2.type}</span>
                     </div>
                 </div>
             {/if}
@@ -128,7 +137,7 @@
             <div class="mode-selection">
                 <button
                         class="mode-card"
-                        class:selected={battleMode === 'pokemon'}
+                        class:selected={localBattleMode === 'pokemon'}
                         on:click={() => setBattleMode('pokemon')}
                 >
                     <div class="mode-icon">
@@ -149,7 +158,7 @@
 
                 <button
                         class="mode-card"
-                        class:selected={battleMode === 'tactical'}
+                        class:selected={localBattleMode === 'tactical'}
                         on:click={() => setBattleMode('tactical')}
                 >
                     <div class="mode-icon">
@@ -174,7 +183,7 @@
             <div class="difficulty-selection">
                 <button
                         class="difficulty-card"
-                        class:selected={selectedAILevel === 'easy'}
+                        class:selected={localAILevel === 'easy'}
                         on:click={() => setAILevel('easy')}
                 >
                     <div class="difficulty-icon">
@@ -188,7 +197,7 @@
 
                 <button
                         class="difficulty-card"
-                        class:selected={selectedAILevel === 'normal'}
+                        class:selected={localAILevel === 'normal'}
                         on:click={() => setAILevel('normal')}
                 >
                     <div class="difficulty-icon">
@@ -202,7 +211,7 @@
 
                 <button
                         class="difficulty-card"
-                        class:selected={selectedAILevel === 'hard'}
+                        class:selected={localAILevel === 'hard'}
                         on:click={() => setAILevel('hard')}
                 >
                     <div class="difficulty-icon">
@@ -234,7 +243,7 @@
                     <img src="/icons/fight.png" style="height:30px" />
                 </div>
                 <div class="button-text">
-                    {#if battleMode === 'pokemon'}
+                    {#if localBattleMode === 'pokemon'}
                         START POKEMON BATTLE
                     {:else}
                         START TACTICAL COMBAT
@@ -424,19 +433,6 @@
         border-radius: 20px;
         box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
         animation: pulse 2s ease-in-out infinite;
-    }
-
-    .lightning-bolt {
-        font-size: 1.5rem;
-        animation: lightning 1.5s ease-in-out infinite;
-        color: #fbbf24;
-    }
-
-    .vs-text {
-        font-size: 1.8rem;
-        font-weight: 600;
-        color: #fff;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     .type-matchup {
@@ -658,6 +654,7 @@
         font-size: 1rem;
         letter-spacing: 1px;
     }
+
     /* Updated type colors to match algorithms.ts */
     .type-forest { background: #22c55e; }
     .type-neural { background: #3b82f6; }
@@ -669,12 +666,6 @@
     @keyframes pulse {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.05); }
-    }
-
-    @keyframes lightning {
-        0%, 100% { transform: rotate(0deg); }
-        25% { transform: rotate(-5deg); }
-        75% { transform: rotate(5deg); }
     }
 
     @media (max-width: 1200px) {
