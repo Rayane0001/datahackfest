@@ -126,7 +126,7 @@
                         <button
                                 class="pokemon-card"
                                 style="--type-color: {algo.color}"
-                                on:click={() => {selectFighter(1, algo); playAudio(`/audio/${algo.type}.mp3`, true) }}
+                                on:click={() => {selectFighter(1, algo); }}
                                 disabled={isLoading}
                         >
                             <div class="card-sprite-container">

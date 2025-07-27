@@ -4,6 +4,7 @@
     import type { Fighter } from '$lib/ml/algorithms';
     import { CombatEngine } from '$lib/ml/combat';
     import type { AILevel } from '$lib/ai/combat-ai';
+import { playAudio } from '$lib/stores/audioPlayer';
 
     // Phase Components
     import DatasetPhase from './phases/DatasetPhase.svelte';
@@ -55,6 +56,7 @@
         fighter1 = event.detail.fighter1;
         fighter2 = event.detail.fighter2;
         currentPhase = 'setup';
+        playAudio(`/audio/${fighter1.type}.mp3`, true)
     }
 
     function handleBattleStart(event: CustomEvent) {

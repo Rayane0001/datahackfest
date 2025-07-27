@@ -90,9 +90,12 @@
                 <div class="type-matchup">
                     <span class="matchup-text">Type Matchup</span>
                     <div class="matchup-display">
-                        <span class="type-badge type-{fighter1.type}">{fighter1.type}</span>
+                        <span class={`type-${fighter1.type} type-badge `}>{fighter1.type}</span>
+
                         <span class="vs-small">vs</span>
-                        <span class="type-badge type-{fighter2.type}">{fighter2.type}</span>
+                        <span class={` type-${fighter2.type} type-badge`}>{fighter2.type}</span>
+                        {console.log(`type-${fighter2.type}`)}
+
                     </div>
                 </div>
             {/if}
@@ -238,6 +241,13 @@
 </div>
 
 <style>
+    .type-ensemble { background-color: #22c55e; color: black }
+    .type-neural { background: #3b82f6; }
+    .type-geometric { background: #ef4444; }
+    .type-svm { background: #f59e0b; }
+    .type-probabilistic { background: #ec4899; }
+    .type-clustering { background: #8b5cf6; }
+
     .theme-toggle {
         position: fixed;
         top: 20px;
@@ -708,12 +718,7 @@
         letter-spacing: 1px;
     }
 
-    .type-ensemble { background: #22c55e; }
-    .type-neural { background: #3b82f6; }
-    .type-geometric { background: #ef4444; }
-    .type-boosting { background: #f59e0b; }
-    .type-probabilistic { background: #ec4899; }
-    .type-clustering { background: #8b5cf6; }
+
 
     @keyframes pulse {
         0%, 100% { transform: scale(1); }
