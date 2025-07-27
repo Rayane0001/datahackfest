@@ -4,7 +4,6 @@
     import { getAlgorithmSprites } from '$lib/stores/theme';
     import type { Fighter } from '$lib/ml/algorithms';
     import type { AILevel } from '$lib/ai/combat-ai';
-    import { playAudio } from '$lib/stores/audioPlayer';
 
 
     export let fighter1: Fighter | null;
@@ -26,10 +25,7 @@
 
     function startBattle() {
         if (!fighter1 || !fighter2) return;
-        playAudio(`/audio/battle.wav`)
-        setTimeout(() => {
-            playAudio("/audio/fight.mp3")
-        }, 250)
+
         dispatch('battle-start', {
             mode: battleMode,
             aiLevel: selectedAILevel
@@ -87,9 +83,12 @@
                 <div class="type-matchup">
                     <span class="matchup-text">Type Matchup</span>
                     <div class="matchup-display">
-                        <span class="type-badge type-{fighter1.type}">{fighter1.type}</span>
+                        <span class={`type-${fighter1.type} type-badge `}>{fighter1.type}</span>
+
                         <span class="vs-small">vs</span>
-                        <span class="type-badge type-{fighter2.type}">{fighter2.type}</span>
+                        <span class={` type-${fighter2.type} type-badge`}>{fighter2.type}</span>
+                        {console.log(`type-${fighter2.type}`)}
+
                     </div>
                 </div>
             {/if}
@@ -659,7 +658,6 @@
         font-size: 1rem;
         letter-spacing: 1px;
     }
-
     /* Updated type colors to match algorithms.ts */
     .type-forest { background: #22c55e; }
     .type-neural { background: #3b82f6; }

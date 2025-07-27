@@ -5,6 +5,7 @@
     import { CombatEngine } from '$lib/ml/combat';
     import { trainingResults } from '$lib/stores/trainingResults';
     import type { AILevel } from '$lib/ai/combat-ai';
+import { playAudio, stopAudio } from '$lib/stores/audioPlayer';
 
     // Phase Components
     import DatasetPhase from './phases/DatasetPhase.svelte';
@@ -60,11 +61,16 @@
         fighter1 = event.detail.fighter1;
         fighter2 = event.detail.fighter2;
         currentPhase = 'setup';
+        stopAudio()
+        playAudio(`/audio/${fighter1.type}.mp3`, true)
     }
 
     function handleBattleStart(event: CustomEvent) {
         battleMode = event.detail.mode;
         selectedAILevel = event.detail.aiLevel;
+
+        stopAudio()
+        playAudio(`/audio/fight.mp3`, true)
 
         if (battleMode === 'pokemon') {
             currentPhase = 'pokemon-battle';
@@ -81,6 +87,9 @@
     function handleBackToMenu() {
         // Return to setup phase to choose new battle mode or fighters
         currentPhase = 'setup';
+
+        stopAudio()
+        playAudio(`/audio/super_mario.mp3`, true)
     }
 
     function handleResetBattle() {
@@ -105,6 +114,8 @@
         fighter1 = null;
         fighter2 = null;
 
+        stopAudio()
+        playAudio(`/audio/super_mario.mp3`, true)
         // Clear training results and hide modal
         trainingResults.hideResults();
         trainingResults.clearSession();
@@ -113,6 +124,7 @@
         if (datasetAnalysis) {
             trainingResults.startSession(datasetAnalysis.name || 'Unknown Dataset');
         }
+
     }
 
     // Pokedex
