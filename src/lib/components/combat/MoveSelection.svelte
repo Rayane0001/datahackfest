@@ -14,11 +14,8 @@
 
     const dispatch = createEventDispatcher();
 
-    // Tooltip state - now click-based like Pokemon mode
     let showTooltip = false;
     let currentMove: Move | null = null;
-    let tooltipX = 0;
-    let tooltipY = 0;
 
     function getEffectivenessInfo(move: Move) {
         const playerType = ALGORITHM_TYPES[playerFighter.name];
@@ -39,10 +36,8 @@
             return;
         }
 
-        // Close any open tooltip when selecting a move
         showTooltip = false;
         currentMove = null;
-
         dispatch('move-selected', { move });
     }
 
@@ -50,13 +45,9 @@
         event.stopPropagation();
 
         if (showTooltip && currentMove === move) {
-            // If clicking the same move tooltip that's already open, close it
             closeTooltip();
         } else {
-            // Open new tooltip - center it on screen for better visibility
             currentMove = move;
-            tooltipX = window.innerWidth / 2;
-            tooltipY = 120; // Fixed position from top
             showTooltip = true;
         }
     }
@@ -77,7 +68,6 @@
         return { class: 'pp-full', text: `${pp}/${maxPP}` };
     }
 
-    // Close tooltip when clicking outside
     function handleDocumentClick() {
         if (showTooltip) {
             closeTooltip();
@@ -155,7 +145,6 @@
                         <span class="pp-value {ppStatus.class}">{ppStatus.text}</span>
                     </div>
 
-                    <!-- Click-based tooltip trigger -->
                     <span
                             class="move-tooltip-icon"
                             class:disabled={!canUse || disabled}
@@ -193,14 +182,9 @@
     </div>
 </div>
 
-<!-- Click-based Tooltip Modal -->
 {#if showTooltip && currentMove}
     <div class="tooltip-overlay" on:click={closeTooltip}>
-        <div
-                class="move-tooltip"
-                style="left: {tooltipX}px; top: {tooltipY}px;"
-                on:click={(e) => e.stopPropagation()}
-        >
+        <div class="move-tooltip" on:click={(e) => e.stopPropagation()}>
             <button class="tooltip-close" on:click={closeTooltip}>✖</button>
 
             <div class="tooltip-header">
@@ -579,7 +563,6 @@
         font-style: italic;
     }
 
-    /* Tooltip Modal */
     .tooltip-overlay {
         position: fixed;
         top: 0;
@@ -742,7 +725,6 @@
         line-height: 1.4;
     }
 
-    /* Type colors */
     .type-ensemble { background: #2563eb; }
     .type-neural { background: #1e40af; }
     .type-geometric { background: #1d4ed8; }
@@ -750,7 +732,6 @@
     .type-probabilistic { background: #60a5fa; }
     .type-clustering { background: #93c5fd; }
 
-    /* Scrollbar styling for tooltip */
     .move-tooltip::-webkit-scrollbar {
         width: 6px;
     }
