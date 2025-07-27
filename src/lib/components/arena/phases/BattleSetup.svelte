@@ -660,12 +660,13 @@
         letter-spacing: 1px;
     }
 
-    .type-ensemble { background: #2563eb; }
-    .type-neural { background: #1e40af; }
-    .type-geometric { background: #1d4ed8; }
-    .type-boosting { background: #3b82f6; }
-    .type-probabilistic { background: #93c5fd; }
-    .type-clustering { background: #60a5fa; }
+    /* Updated type colors to match algorithms.ts */
+    .type-forest { background: #22c55e; }
+    .type-neural { background: #3b82f6; }
+    .type-svm { background: #ef4444; }
+    .type-gradient { background: #f59e0b; }
+    .type-bayes { background: #ec4899; }
+    .type-kmeans { background: #8b5cf6; }
 
     @keyframes pulse {
         0%, 100% { transform: scale(1); }
@@ -703,10 +704,10 @@
         }
 
         .difficulty-icon img {
-  height: 120px;  /* or 140px — whatever looks right */
-  width: auto;
-  object-fit: contain;
-}
+            height: 120px;
+            width: auto;
+            object-fit: contain;
+        }
 
         .battle-controls {
             flex-direction: column;

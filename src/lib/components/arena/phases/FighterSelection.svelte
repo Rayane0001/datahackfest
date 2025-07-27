@@ -21,12 +21,12 @@
     let showTrainingResults = false;
 
     const availableAlgorithms = [
-        { name: 'Random Forest', color: '#2563eb', type: 'ensemble' },
-        { name: 'Neural Network', color: '#1e40af', type: 'neural' },
-        { name: 'Support Vector Machine', color: '#1d4ed8', type: 'geometric' },
-        { name: 'Gradient Boosting', color: '#3b82f6', type: 'boosting' },
-        { name: 'K-Means Clustering', color: '#60a5fa', type: 'clustering' },
-        { name: 'Naive Bayes', color: '#93c5fd', type: 'probabilistic' }
+        { name: 'Random Forest', color: '#22c55e', type: 'forest' },
+        { name: 'Neural Network', color: '#3b82f6', type: 'neural' },
+        { name: 'Support Vector Machine', color: '#ef4444', type: 'svm' },
+        { name: 'Gradient Boosting', color: '#f59e0b', type: 'gradient' },
+        { name: 'K-Means Clustering', color: '#8b5cf6', type: 'kmeans' },
+        { name: 'Naive Bayes', color: '#ec4899', type: 'bayes' }
     ];
 
     // Subscribe to training results to show visualization
@@ -187,7 +187,7 @@
     <div class="selection-grid">
         <div class="trainer-section player-section">
             <div class="trainer-header">
-                <h2>👤 Player 1 (You)</h2>
+                <h2><img src="/icons/player.png" alt="Player" class="trainer-icon" /> Player 1 (You)</h2>
             </div>
 
             {#if fighter1}
@@ -297,7 +297,7 @@
 
         <div class="trainer-section ai-section">
             <div class="trainer-header">
-                <h2>🤖 Player 2 (AI)</h2>
+                <h2><img src="/icons/ai.png" alt="AI" class="trainer-icon" /> Player 2 (AI)</h2>
             </div>
 
             {#if fighter2}
@@ -557,6 +557,16 @@
         margin: 0 0 30px 0;
         color: #f1f5f9;
         font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .trainer-icon {
+        height: 24px;
+        width: 24px;
+        object-fit: contain;
     }
 
     .pokemon-selection-grid {
@@ -913,12 +923,12 @@
         50% { box-shadow: 0 8px 30px rgba(37, 99, 235, 0.5); }
     }
 
-    .type-ensemble { background: #2563eb; }
-    .type-neural { background: #1e40af; }
-    .type-geometric { background: #1d4ed8; }
-    .type-boosting { background: #3b82f6; }
-    .type-probabilistic { background: #93c5fd; }
-    .type-clustering { background: #60a5fa; }
+    .type-forest { background: #22c55e; }
+    .type-neural { background: #3b82f6; }
+    .type-svm { background: #ef4444; }
+    .type-gradient { background: #f59e0b; }
+    .type-bayes { background: #ec4899; }
+    .type-kmeans { background: #8b5cf6; }
 
     @media (max-width: 1200px) {
         .selection-grid {
