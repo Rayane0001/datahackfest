@@ -3,6 +3,7 @@
     import { onMount } from 'svelte';
     import type { Fighter } from '$lib/ml/algorithms';
     import { CombatEngine } from '$lib/ml/combat';
+    import { trainingResults } from '$lib/stores/trainingResults';
     import type { AILevel } from '$lib/ai/combat-ai';
 
     // Phase Components
@@ -48,6 +49,10 @@
     function handleDatasetAnalyzed(event: CustomEvent) {
         currentDataset = event.detail.data;
         datasetAnalysis = event.detail.analysis;
+
+        // Start a new training session when dataset is analyzed
+        trainingResults.startSession(datasetAnalysis?.name || 'Unknown Dataset');
+
         currentPhase = 'selection';
     }
 
@@ -89,12 +94,25 @@
         fighter1 = null;
         fighter2 = null;
         combatLog = [];
+
+        // Clear training session completely
+        trainingResults.hideResults();
+        trainingResults.clearSession();
     }
 
     function backToSelection() {
         currentPhase = 'selection';
         fighter1 = null;
         fighter2 = null;
+
+        // Clear training results and hide modal
+        trainingResults.hideResults();
+        trainingResults.clearSession();
+
+        // Start new session if dataset exists
+        if (datasetAnalysis) {
+            trainingResults.startSession(datasetAnalysis.name || 'Unknown Dataset');
+        }
     }
 
     // Pokedex
@@ -127,12 +145,14 @@
                 on:pokedex={openPokedex}
         />
 
+        <!-- FighterSelection with training visualization -->
         <FighterSelection
                 {combatEngine}
                 {currentDataset}
+                {datasetAnalysis}
                 {isLoading}
                 on:fighters-selected={handleFightersSelected}
-                on:loading={(e) => isLoading = e.detail}
+                on:loading={(e: CustomEvent) => isLoading = e.detail}
         />
 
     {:else if currentPhase === 'setup'}
@@ -152,6 +172,33 @@
                 on:battle-start={handleBattleStart}
                 on:back={backToSelection}
         />
+
+        <!-- Training Results Summary Card -->
+        {#if fighter1 && fighter2}
+            <div class="training-summary-card">
+                <h3>🏆 Training Results Summary</h3>
+                <div class="summary-grid">
+                    <div class="fighter-summary" style="border-color: {fighter1.color}">
+                        <h4>{fighter1.name}</h4>
+                        <div class="quick-stats">
+                            <span>Accuracy: {(fighter1.precision * 100).toFixed(1)}%</span>
+                            <span>Training: {fighter1.trainingTime.toFixed(2)}s</span>
+                        </div>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="fighter-summary" style="border-color: {fighter2.color}">
+                        <h4>{fighter2.name}</h4>
+                        <div class="quick-stats">
+                            <span>Accuracy: {(fighter2.precision * 100).toFixed(1)}%</span>
+                            <span>Training: {fighter2.trainingTime.toFixed(2)}s</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="view-detailed-results" on:click={() => trainingResults.toggleResults()}>
+                    📊 View Detailed Analysis
+                </button>
+            </div>
+        {/if}
 
     {:else if currentPhase === 'pokemon-battle'}
         {#if fighter1 && fighter2}
@@ -238,5 +285,135 @@
     .loading-battle button:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px 0 rgba(37, 99, 235, 0.35);
+    }
+
+    /* Training Summary Card Styles */
+    .training-summary-card {
+        max-width: 1200px;
+        margin: 40px auto;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        text-align: center;
+    }
+
+    :global(.theme-dark) .training-summary-card {
+        background: rgba(30, 41, 59, 0.3);
+        border-color: rgba(71, 85, 105, 0.3);
+    }
+
+    .training-summary-card h3 {
+        color: #f1f5f9;
+        font-size: 1.5rem;
+        margin: 0 0 25px 0;
+        font-weight: 600;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 30px;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .fighter-summary {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid;
+        border-radius: 15px;
+        padding: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .fighter-summary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .fighter-summary h4 {
+        color: #f1f5f9;
+        font-size: 1.2rem;
+        margin: 0 0 15px 0;
+        font-weight: 600;
+    }
+
+    .quick-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .quick-stats span {
+        color: #cbd5e1;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .vs-divider {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #fbbf24;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    .view-detailed-results {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        font-family: 'Courier New', monospace;
+    }
+
+    .view-detailed-results:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .summary-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .vs-divider {
+            order: 2;
+        }
+
+        .training-summary-card {
+            margin: 20px;
+            padding: 20px;
+        }
+
+        .training-summary-card h3 {
+            font-size: 1.3rem;
+        }
+
+        .fighter-summary h4 {
+            font-size: 1.1rem;
+        }
+
+        .quick-stats span {
+            font-size: 0.8rem;
+        }
+
+        .view-detailed-results {
+            padding: 12px 24px;
+            font-size: 1rem;
+        }
     }
 </style>

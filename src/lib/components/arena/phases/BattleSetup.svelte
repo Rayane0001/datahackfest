@@ -59,7 +59,7 @@
                 <div class="fighter-card player-card">
                     <div class="sprite-container">
                         <img
-                                src={getAlgorithmSprites(fighter1.name).back}
+                                src={getAlgorithmSprites(fighter1.name).front}
                                 alt="{fighter1.name} sprite"
                                 class="fighter-sprite player-sprite"
                         />

@@ -2,19 +2,23 @@
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
     import { getAlgorithmSprites } from '$lib/stores/theme';
+    import { trainingResults } from '$lib/stores/trainingResults';
     import type { Fighter } from '$lib/ml/algorithms';
     import type { CombatEngine } from '$lib/ml/combat';
     import { playAudio } from '$lib/stores/audioPlayer';
-
+    import TrainingResults from '../TrainingResults.svelte';
 
     export let combatEngine: CombatEngine;
     export let currentDataset: any;
     export let isLoading: boolean;
+    export let datasetAnalysis: any = null;
 
     const dispatch = createEventDispatcher();
 
     let fighter1: Fighter | null = null;
     let fighter2: Fighter | null = null;
+    let sessionId: string | null = null;
+    let showTrainingResults = false;
 
     const availableAlgorithms = [
         { name: 'Random Forest', color: '#2563eb', type: 'ensemble' },
@@ -25,16 +29,57 @@
         { name: 'Naive Bayes', color: '#93c5fd', type: 'probabilistic' }
     ];
 
+    // Subscribe to training results to show visualization
+    let unsubscribe: (() => void) | undefined;
+
+    $: if (typeof window !== 'undefined') {
+        unsubscribe?.();
+        unsubscribe = trainingResults.subscribe(store => {
+            // Only show training results if there's active training or explicitly requested
+            const hasActiveTraining = Object.values(store.progressMap).some(p => p.isTraining);
+            const hasCompletedTraining = store.currentSession?.algorithms.length > 0;
+            showTrainingResults = hasActiveTraining || (store.showResults && hasCompletedTraining);
+        });
+    }
+
     async function selectFighter(slot: 1 | 2, algorithm: any) {
-        playAudio("/audio/button_real.wav")
+        playAudio("/audio/button_real.wav");
+
         if (!currentDataset) {
             alert('Please upload a dataset first!');
             return;
         }
 
+        // Start session if not already started
+        if (!sessionId) {
+            sessionId = trainingResults.startSession(currentDataset.name || 'Unknown Dataset');
+        }
+
         dispatch('loading', true);
 
         try {
+            // Start training progress tracking
+            trainingResults.startAlgorithmTraining(algorithm.name);
+
+            // Simulate training progress for visual feedback
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15 + 5;
+
+                let currentMetric = 'Initializing...';
+                if (progress > 20) currentMetric = 'Loading dataset...';
+                if (progress > 40) currentMetric = 'Training model...';
+                if (progress > 60) currentMetric = 'Calculating metrics...';
+                if (progress > 80) currentMetric = 'Finalizing results...';
+
+                trainingResults.updateProgress(algorithm.name, Math.min(progress, 95), currentMetric);
+
+                if (progress >= 95) {
+                    clearInterval(progressInterval);
+                }
+            }, 200);
+
+            // Actual training
             const fighter = await combatEngine.createFighterFromDataset(
                 algorithm.name,
                 algorithm.color,
@@ -42,22 +87,47 @@
                 currentDataset
             );
 
+            // Complete progress
+            clearInterval(progressInterval);
+            trainingResults.updateProgress(algorithm.name, 100, 'Training Complete!');
+
+            // Store training metrics
+            const metrics = {
+                algorithmName: algorithm.name,
+                accuracy: fighter.precision,
+                precision: fighter.precision,
+                recall: fighter.recall,
+                f1Score: fighter.f1Score,
+                trainingTime: fighter.trainingTime,
+                fighter: fighter
+            };
+
+            trainingResults.completeAlgorithmTraining(algorithm.name, metrics);
+
+            // Assign fighter to slot
             if (slot === 1) {
                 fighter1 = fighter;
             } else {
                 fighter2 = fighter;
             }
 
-            // Don't auto-advance to next phase
+            // If both fighters are ready, complete the session
+            if (fighter1 && fighter2) {
+                setTimeout(() => {
+                    trainingResults.completeSession();
+                }, 500);
+            }
+
         } catch (error) {
             console.error('Failed to create fighter:', error);
+            trainingResults.updateProgress(algorithm.name, 0, 'Training Failed');
         } finally {
             dispatch('loading', false);
         }
     }
 
     function proceedToBattle() {
-        playAudio("/audio/button_real.wav")
+        playAudio("/audio/button_real.wav");
         if (fighter1 && fighter2) {
             dispatch('fighters-selected', { fighter1, fighter2 });
         }
@@ -67,15 +137,45 @@
         if (!fighter) return 50;
         return Math.floor((fighter.attack + fighter.defense + fighter.speed) / 3) || 50;
     }
+
+    function resetFighter(slot: 1 | 2) {
+        playAudio('/audio/button_real.wav');
+
+        // Clear fighter from UI
+        if (slot === 1) {
+            fighter1 = null;
+        } else {
+            fighter2 = null;
+        }
+
+        // Hide training results when resetting fighters
+        trainingResults.hideResults();
+
+        // Clear session if no fighters remain
+        if (!fighter1 && !fighter2) {
+            trainingResults.clearSession();
+            sessionId = null;
+        }
+    }
+
+    function showResultsDashboard() {
+        playAudio("/audio/button_real.wav");
+        trainingResults.toggleResults();
+    }
 </script>
 
 <div class="pokemon-selection-screen">
     <div class="selection-header">
         <h1>Choose Your Fighters!</h1>
         <p class="subtitle">Select two ML algorithms to battle with your dataset</p>
+
+        {#if fighter1 || fighter2}
+            <button class="results-button" on:click={showResultsDashboard}>
+                📊 View Training Results
+            </button>
+        {/if}
     </div>
 
-    <!-- Battle Controls -->
     {#if fighter1 && fighter2}
         <div class="battle-controls">
             <button class="proceed-button" on:click={proceedToBattle}>
@@ -85,10 +185,9 @@
     {/if}
 
     <div class="selection-grid">
-        <!-- Player 1 Selection -->
         <div class="trainer-section player-section">
             <div class="trainer-header">
-                <h2><img src="/icons/player.png" style="height:30px" /> Player 1 (You)</h2>
+                <h2>👤 Player 1 (You)</h2>
             </div>
 
             {#if fighter1}
@@ -120,19 +219,40 @@
                             <span class="stat-value">{Math.round(fighter1.speed)}</span>
                         </div>
                     </div>
+
                     <div class="ml-performance">
-                        <div class="performance-bar">
-                            <span>Accuracy</span>
-                            <div class="bar">
-                                <div class="fill" style="width: {fighter1.precision * 100}%; background: {fighter1.color}"></div>
+                        <div class="performance-grid">
+                            <div class="performance-bar">
+                                <span class="metric-label">Accuracy</span>
+                                <div class="bar">
+                                    <div class="fill" style="width: {fighter1.precision * 100}%; background: {fighter1.color}"></div>
+                                </div>
+                                <span class="metric-value">{(fighter1.precision * 100).toFixed(1)}%</span>
                             </div>
-                            <span>{(fighter1.precision * 100).toFixed(1)}%</span>
+
+                            <div class="performance-bar">
+                                <span class="metric-label">Precision</span>
+                                <div class="bar">
+                                    <div class="fill" style="width: {fighter1.precision * 100}%; background: {fighter1.color}"></div>
+                                </div>
+                                <span class="metric-value">{(fighter1.precision * 100).toFixed(1)}%</span>
+                            </div>
+
+                            <div class="performance-bar">
+                                <span class="metric-label">Recall</span>
+                                <div class="bar">
+                                    <div class="fill" style="width: {fighter1.recall * 100}%; background: {fighter1.color}"></div>
+                                </div>
+                                <span class="metric-value">{(fighter1.recall * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+
+                        <div class="training-time">
+                            ⏱️ Training Time: {fighter1.trainingTime.toFixed(2)}s
                         </div>
                     </div>
-                    <button class="change-fighter-button" on:click={() => {
-                        playAudio('/audio/button_real.wav')
-                        fighter1 = null
-                    }}>
+
+                    <button class="change-fighter-button" on:click={() => resetFighter(1)}>
                         🔄 Change Fighter
                     </button>
                 </div>
@@ -143,9 +263,9 @@
                                 class="pokemon-card"
                                 style="--type-color: {algo.color}"
                                 on:click={() => {
-                                    selectFighter(1, algo); 
-                                    setTimeout(() => playAudio(`/audio/${algo.type}.mp3`, true), 250)
-                                }}
+                                selectFighter(1, algo);
+                                setTimeout(() => playAudio(`/audio/${algo.type}.mp3`, true), 250)
+                            }}
                                 disabled={isLoading}
                         >
                             <div class="card-sprite-container">
@@ -166,7 +286,6 @@
             {/if}
         </div>
 
-        <!-- VS Divider -->
         <div class="vs-section">
             <div class="vs-circle">
                 <span class="vs-text">VS</span>
@@ -176,10 +295,9 @@
             {/if}
         </div>
 
-        <!-- Player 2 Selection -->
         <div class="trainer-section ai-section">
             <div class="trainer-header">
-                <h2><img src="/icons/ai.png" style="height:30px" /> Player 2 (AI)</h2>
+                <h2>🤖 Player 2 (AI)</h2>
             </div>
 
             {#if fighter2}
@@ -211,19 +329,40 @@
                             <span class="stat-value">{Math.round(fighter2.speed)}</span>
                         </div>
                     </div>
+
                     <div class="ml-performance">
-                        <div class="performance-bar">
-                            <span>Accuracy</span>
-                            <div class="bar">
-                                <div class="fill" style="width: {fighter2.precision * 100}%; background: {fighter2.color}"></div>
+                        <div class="performance-grid">
+                            <div class="performance-bar">
+                                <span class="metric-label">Accuracy</span>
+                                <div class="bar">
+                                    <div class="fill" style="width: {fighter2.precision * 100}%; background: {fighter2.color}"></div>
+                                </div>
+                                <span class="metric-value">{(fighter2.precision * 100).toFixed(1)}%</span>
                             </div>
-                            <span>{(fighter2.precision * 100).toFixed(1)}%</span>
+
+                            <div class="performance-bar">
+                                <span class="metric-label">Precision</span>
+                                <div class="bar">
+                                    <div class="fill" style="width: {fighter2.precision * 100}%; background: {fighter2.color}"></div>
+                                </div>
+                                <span class="metric-value">{(fighter2.precision * 100).toFixed(1)}%</span>
+                            </div>
+
+                            <div class="performance-bar">
+                                <span class="metric-label">Recall</span>
+                                <div class="bar">
+                                    <div class="fill" style="width: {fighter2.recall * 100}%; background: {fighter2.color}"></div>
+                                </div>
+                                <span class="metric-value">{(fighter2.recall * 100).toFixed(1)}%</span>
+                            </div>
+                        </div>
+
+                        <div class="training-time">
+                            ⏱️ Training Time: {fighter2.trainingTime.toFixed(2)}s
                         </div>
                     </div>
-                    <button class="change-fighter-button" on:click={() => {
-                        playAudio('/audio/button_real.wav')
-                        fighter2 = null
-                    }}>
+
+                    <button class="change-fighter-button" on:click={() => resetFighter(2)}>
                         🔄 Change Fighter
                     </button>
                 </div>
@@ -269,7 +408,96 @@
     {/if}
 </div>
 
+<TrainingResults visible={showTrainingResults} {datasetAnalysis} />
+
 <style>
+    .results-button {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 15px;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+    }
+
+    .results-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35);
+    }
+
+    .performance-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .performance-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+    }
+
+    .metric-label {
+        min-width: 60px;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    :global(.theme-dark) .metric-label {
+        color: #94a3b8;
+    }
+
+    .bar {
+        flex: 1;
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    :global(.theme-dark) .bar {
+        background: #334155;
+    }
+
+    .fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.5s ease;
+    }
+
+    .metric-value {
+        min-width: 40px;
+        text-align: right;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    :global(.theme-dark) .metric-value {
+        color: #f1f5f9;
+    }
+
+    .training-time {
+        text-align: center;
+        font-size: 0.9rem;
+        color: #64748b;
+        font-weight: 600;
+        padding: 8px;
+        background: rgba(15, 23, 42, 0.1);
+        border-radius: 6px;
+    }
+
+    :global(.theme-dark) .training-time {
+        background: rgba(15, 23, 42, 0.3);
+        color: #94a3b8;
+    }
+
     .pokemon-selection-screen {
         min-height: 100vh;
         background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
@@ -530,31 +758,6 @@
         margin-top: 20px;
     }
 
-    .performance-bar {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 0.9rem;
-    }
-
-    .bar {
-        flex: 1;
-        height: 8px;
-        background: #e2e8f0;
-        border-radius: 4px;
-        overflow: hidden;
-    }
-
-    :global(.theme-dark) .bar {
-        background: #334155;
-    }
-
-    .fill {
-        height: 100%;
-        border-radius: 4px;
-        transition: width 0.5s ease;
-    }
-
     .vs-section {
         display: flex;
         flex-direction: column;
@@ -743,6 +946,22 @@
 
         .trainer-section {
             padding: 20px;
+        }
+
+        .performance-grid {
+            gap: 6px;
+        }
+
+        .performance-bar {
+            font-size: 0.7rem;
+        }
+
+        .metric-label {
+            min-width: 50px;
+        }
+
+        .metric-value {
+            min-width: 35px;
         }
     }
 </style>
