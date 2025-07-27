@@ -149,7 +149,8 @@ export class FighterFactory {
         const speed = performanceMetrics?.fitTime ? Math.max(20, 100 - performanceMetrics.fitTime * 10) : randomize(config.baseStats.speed);
         const accuracy = performanceMetrics?.accuracy ? performanceMetrics.accuracy * 100 : randomize(config.baseStats.accuracy);
 
-        const maxHealth = Math.round((attack + defense + speed) / 3);
+        // HP here
+        const maxHealth = Math.round(((attack + defense + speed) / 3) * 3.5);
 
         return {
             name: config.name,

@@ -1,4 +1,4 @@
-<!-- @file src/lib/components/combat/CombatInterface.svelte -->
+<!-- Complete CombatInterface.svelte with all fixes -->
 <script lang="ts">
     import { createEventDispatcher, onMount } from 'svelte';
     import type { Fighter } from '$lib/ml/algorithms';
@@ -15,7 +15,6 @@
     import { getTypeMultiplier, ALGORITHM_TYPES } from '$lib/data/type-advantages';
     import MoveSelection from './MoveSelection.svelte';
     import StatusEffects from './StatusEffects.svelte';
-    import { playAudio } from '$lib/stores/audioPlayer';
 
     export let playerFighter: Fighter;
     export let aiFighter: Fighter;
@@ -28,6 +27,11 @@
     let currentTurn = 1;
     let battleEnded = false;
     let winner: string | null = null;
+    let showBattleEndOverlay = true;
+
+    // Create battle copies to avoid mutating original fighters
+    let battlePlayerFighter: Fighter;
+    let battleAiFighter: Fighter;
 
     // Moves and PP
     let playerMoves: Move[] = [];
@@ -46,22 +50,45 @@
     // AI
     let combatAI: CombatAI;
     let aiThinking = false;
-    let aiDecisionDelay = 2000; // 2 seconds for AI to "think"
+    let aiDecisionDelay = 2000;
 
     // UI state
-    let showMoveSelection = true;
+    let showMoveSelection = false;
     let animationInProgress = false;
+    let isInitialized = false;
 
     onMount(() => {
-        initializeCombat();
+        if (playerFighter && aiFighter) {
+            initializeCombat();
+        }
     });
 
     function initializeCombat() {
-        // Initialize moves
-        playerMoves = getMovesByAlgorithm(playerFighter.name);
-        aiMoves = getMovesByAlgorithm(aiFighter.name);
+        if (!playerFighter || !aiFighter) return;
 
-        // Initialize PP
+        battlePlayerFighter = {
+            ...playerFighter,
+            health: playerFighter.maxHealth
+        };
+        battleAiFighter = {
+            ...aiFighter,
+            health: aiFighter.maxHealth
+        };
+
+        isPlayerTurn = true;
+        currentTurn = 1;
+        battleEnded = false;
+        winner = null;
+        animationInProgress = false;
+        aiThinking = false;
+        showMoveSelection = false;
+        showBattleEndOverlay = true;
+
+        playerMoves = getMovesByAlgorithm(battlePlayerFighter.name);
+        aiMoves = getMovesByAlgorithm(battleAiFighter.name);
+
+        playerPP = {};
+        aiPP = {};
         playerMoves.forEach(move => {
             playerPP[move.name] = move.pp;
         });
@@ -69,28 +96,54 @@
             aiPP[move.name] = move.pp;
         });
 
-        // Initialize AI
+        playerStatus = [];
+        aiStatus = [];
+        combatMessages = [];
+        moveHistory = [];
+
         combatAI = new CombatAI(aiLevel);
+        isInitialized = true;
 
-        // Add initial message
-        addCombatMessage(generateTurnStartMessage(
-            playerFighter.name,
-            aiFighter.name,
-            isPlayerTurn,
-            currentTurn
-        ));
+        startBattle();
+    }
 
-        // Add AI personality introduction
+    function startBattle() {
         addCombatMessage({
-            message: `🤖 ${aiFighter.name} AI: "${combatAI.getPersonality()}"`,
-            educational: `This AI represents different levels of ML expertise, from beginner to expert data scientist.`,
+            message: `🚀 BATTLE START`,
+            type: 'info'
+        });
+
+        const playerGoesFirst = battlePlayerFighter.speed >= battleAiFighter.speed;
+
+        addCombatMessage({
+            message: `⚡ ${playerGoesFirst ? battlePlayerFighter.name : battleAiFighter.name} goes first!`,
+            type: 'info'
+        });
+
+        if (playerGoesFirst) {
+            startPlayerTurn();
+        } else {
+            isPlayerTurn = false;
+            setTimeout(() => executeAITurn(), 1000);
+        }
+    }
+
+    function startPlayerTurn() {
+        if (battleEnded) return;
+
+        isPlayerTurn = true;
+        animationInProgress = false;
+        showMoveSelection = true;
+
+        addCombatMessage({
+            message: `🎯 ${battlePlayerFighter.name}'s turn`,
             type: 'info'
         });
     }
 
     function addCombatMessage(message: CombatMessage) {
         combatMessages = [...combatMessages, message];
-        // Auto-scroll to bottom
+
         setTimeout(() => {
             const logElement = document.querySelector('.combat-log-entries');
             if (logElement) {
@@ -107,36 +160,32 @@
     }
 
     async function executePlayerMove(move: Move) {
+        if (battleEnded) return;
+
         animationInProgress = true;
         showMoveSelection = false;
 
-        // Reduce PP
         playerPP[move.name]--;
-
-        // Add move to history
         moveHistory.push(move.name);
 
-        // Calculate damage
-        const damage = calculateDamage(playerFighter, aiFighter, move);
+        const damage = calculateDamage(battlePlayerFighter, battleAiFighter, move);
         const effectiveness = getTypeMultiplier(
-            ALGORITHM_TYPES[playerFighter.name],
-            ALGORITHM_TYPES[aiFighter.name]
+            ALGORITHM_TYPES[battlePlayerFighter.name],
+            ALGORITHM_TYPES[battleAiFighter.name]
         );
-        const isCritical = Math.random() < 0.1; // 10% critical hit chance
+        const isCritical = Math.random() < 0.1;
         const missed = Math.random() > (move.accuracy / 100);
 
-        // Apply damage if hit
         if (!missed) {
             let finalDamage = damage;
             if (isCritical) finalDamage *= 1.5;
             finalDamage *= effectiveness;
             finalDamage = Math.round(finalDamage);
 
-            aiFighter.health = Math.max(0, aiFighter.health - finalDamage);
+            battleAiFighter.health = Math.max(0, battleAiFighter.health - finalDamage);
 
-            // Add attack message
             addCombatMessage(generateAttackMessage(
-                playerFighter.name,
+                battlePlayerFighter.name,
                 move.name,
                 finalDamage,
                 effectiveness,
@@ -145,7 +194,7 @@
             ));
         } else {
             addCombatMessage(generateAttackMessage(
-                playerFighter.name,
+                battlePlayerFighter.name,
                 move.name,
                 0,
                 effectiveness,
@@ -154,19 +203,20 @@
             ));
         }
 
-        // Check for battle end
-        if (aiFighter.health <= 0) {
-            endBattle(playerFighter.name);
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        if (battleAiFighter.health <= 0 && !battleEnded) {
+            endBattle(battlePlayerFighter.name);
             return;
         }
 
-        // Apply status effects if any
         if (move.category === 'status') {
             applyStatusEffect(move, 'ai');
         }
 
-        // Switch to AI turn
-        await switchToNextTurn();
+        if (!battleEnded) {
+            await switchToNextTurn();
+        }
     }
 
     async function executeAITurn() {
@@ -174,13 +224,18 @@
 
         aiThinking = true;
 
-        // Simulate AI thinking time
+        addCombatMessage({
+            message: `🤔 ${battleAiFighter.name} is thinking...`,
+            type: 'info'
+        });
+
         await new Promise(resolve => setTimeout(resolve, aiDecisionDelay));
 
-        // Get AI decision
+        if (battleEnded) return;
+
         const combatState: CombatState = {
-            playerFighter,
-            aiFighter,
+            playerFighter: battlePlayerFighter,
+            aiFighter: battleAiFighter,
             playerMoves,
             aiMoves,
             playerPP,
@@ -194,42 +249,39 @@
         const move = aiDecision.move;
 
         aiThinking = false;
+
+        if (battleEnded) return;
+
         animationInProgress = true;
 
-        // Add AI reasoning message
         addCombatMessage(generateAIReasoningMessage(
-            aiFighter.name,
+            battleAiFighter.name,
             move.name,
             aiDecision.reasoning,
             aiDecision.confidence
         ));
 
-        // Reduce AI PP
         aiPP[move.name]--;
-
-        // Add move to history
         moveHistory.push(move.name);
 
-        // Calculate damage
-        const damage = calculateDamage(aiFighter, playerFighter, move);
+        const damage = calculateDamage(battleAiFighter, battlePlayerFighter, move);
         const effectiveness = getTypeMultiplier(
-            ALGORITHM_TYPES[aiFighter.name],
-            ALGORITHM_TYPES[playerFighter.name]
+            ALGORITHM_TYPES[battleAiFighter.name],
+            ALGORITHM_TYPES[battlePlayerFighter.name]
         );
         const isCritical = Math.random() < 0.1;
         const missed = Math.random() > (move.accuracy / 100);
 
-        // Apply damage if hit
         if (!missed) {
             let finalDamage = damage;
             if (isCritical) finalDamage *= 1.5;
             finalDamage *= effectiveness;
             finalDamage = Math.round(finalDamage);
 
-            playerFighter.health = Math.max(0, playerFighter.health - finalDamage);
+            battlePlayerFighter.health = Math.max(0, battlePlayerFighter.health - finalDamage);
 
             addCombatMessage(generateAttackMessage(
-                aiFighter.name,
+                battleAiFighter.name,
                 move.name,
                 finalDamage,
                 effectiveness,
@@ -238,7 +290,7 @@
             ));
         } else {
             addCombatMessage(generateAttackMessage(
-                aiFighter.name,
+                battleAiFighter.name,
                 move.name,
                 0,
                 effectiveness,
@@ -247,47 +299,44 @@
             ));
         }
 
-        // Check for battle end
-        if (playerFighter.health <= 0) {
-            endBattle(aiFighter.name);
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        if (battlePlayerFighter.health <= 0 && !battleEnded) {
+            endBattle(battleAiFighter.name);
             return;
         }
 
-        // Apply status effects if any
         if (move.category === 'status') {
             applyStatusEffect(move, 'player');
         }
 
-        // Switch to player turn
-        await switchToNextTurn();
+        if (!battleEnded) {
+            await switchToNextTurn();
+        }
     }
 
     async function switchToNextTurn() {
-        // Process status effects
-        processStatusEffects();
+        if (battleEnded) return;
 
-        // Switch turns
-        isPlayerTurn = !isPlayerTurn;
-        if (isPlayerTurn) {
-            currentTurn++;
-        }
-
-        // Add turn start message
-        addCombatMessage(generateTurnStartMessage(
-            playerFighter.name,
-            aiFighter.name,
-            isPlayerTurn,
-            currentTurn
-        ));
-
-        // Reset UI state
         animationInProgress = false;
+        processStatusEffects();
+        isPlayerTurn = !isPlayerTurn;
+        currentTurn++;
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (battleEnded) return;
+
         if (isPlayerTurn) {
-            showMoveSelection = true;
+            startPlayerTurn();
         } else {
+            isPlayerTurn = false;
             showMoveSelection = false;
-            // Start AI turn after a short delay
-            setTimeout(() => executeAITurn(), 1000);
+            setTimeout(() => {
+                if (!battleEnded && !isPlayerTurn) {
+                    executeAITurn();
+                }
+            }, 500);
         }
     }
 
@@ -303,11 +352,9 @@
     }
 
     function applyStatusEffect(move: Move, target: 'player' | 'ai') {
-        // Simple status effect system - can be expanded
         const statusEffects = {
             'Dropout Defense': { name: 'dropout-defense', type: 'positive' as const, turns: 3 },
             'Overfitting': { name: 'overfitting', type: 'negative' as const, turns: 4 },
-            // Add more status effects based on moves
         };
 
         const effect = statusEffects[move.name as keyof typeof statusEffects];
@@ -325,42 +372,68 @@
             } else {
                 aiStatus = [...aiStatus];
             }
+
+            addCombatMessage({
+                message: `✨ ${target === 'player' ? battlePlayerFighter.name : battleAiFighter.name} is affected by ${effect.name}!`,
+                type: 'status'
+            });
         }
     }
 
     function processStatusEffects() {
-        // Process player status effects
         playerStatus = playerStatus.map(status => ({
             ...status,
             turnsRemaining: status.turnsRemaining - 1
-        })).filter(status => status.turnsRemaining > 0);
+        })).filter(status => {
+            if (status.turnsRemaining <= 0) {
+                addCombatMessage({
+                    message: `🔄 ${battlePlayerFighter.name} recovers from ${status.name}`,
+                    type: 'status'
+                });
+                return false;
+            }
+            return true;
+        });
 
-        // Process AI status effects
         aiStatus = aiStatus.map(status => ({
             ...status,
             turnsRemaining: status.turnsRemaining - 1
-        })).filter(status => status.turnsRemaining > 0);
+        })).filter(status => {
+            if (status.turnsRemaining <= 0) {
+                addCombatMessage({
+                    message: `🔄 ${battleAiFighter.name} recovers from ${status.name}`,
+                    type: 'status'
+                });
+                return false;
+            }
+            return true;
+        });
     }
 
     function endBattle(winnerName: string) {
+        if (battleEnded) return;
+
         battleEnded = true;
         winner = winnerName;
         showMoveSelection = false;
         animationInProgress = false;
-        addCombatMessage(generateEndBattleMessage(
-            winnerName,
-            winnerName === playerFighter.name ? aiFighter.name : playerFighter.name,
-            0
-        ));
+        aiThinking = false;
+        showBattleEndOverlay = true;
 
-        // Dispatch battle end event
+        addCombatMessage({
+            message: `🏆 ${winnerName} WINS!`,
+            type: 'info'
+        });
+
         setTimeout(() => {
-            dispatch('battle-end', {
-                winner: winnerName,
-                playerFinalHealth: playerFighter.health,
-                aiFinalHealth: aiFighter.health,
-                totalTurns: currentTurn
-            });
+            if (battleEnded) {
+                dispatch('battle-end', {
+                    winner: winnerName,
+                    playerFinalHealth: battlePlayerFighter.health,
+                    aiFinalHealth: battleAiFighter.health,
+                    totalTurns: currentTurn
+                });
+            }
         }, 2000);
     }
 
@@ -368,14 +441,17 @@
         const { moveName } = event.detail;
         addCombatMessage({
             message: `⚠️ ${moveName} has no PP remaining!`,
-            educational: "PP (Power Points) represent computational resources. More powerful algorithms require more processing power.",
             type: 'info'
         });
     }
 
     function resetBattle() {
-        // Reset all state for a new battle
-        dispatch('reset-battle');
+        showBattleEndOverlay = true;
+        initializeCombat();
+    }
+
+    function backToMenu() {
+        dispatch('back-to-menu');
     }
 </script>
 
@@ -388,8 +464,10 @@
                 <div class="current-turn">
                     {#if battleEnded}
                         <span class="battle-ended">🏆 Battle Complete!</span>
-                    {:else if isPlayerTurn}
+                    {:else if isPlayerTurn && !aiThinking}
                         <span class="player-turn">🎯 Your Turn</span>
+                    {:else if aiThinking}
+                        <span class="ai-thinking">🤔 AI Thinking...</span>
                     {:else}
                         <span class="ai-turn">🤖 AI Turn</span>
                     {/if}
@@ -404,62 +482,64 @@
     </div>
 
     <!-- Fighter Health Bars -->
-    <div class="health-bars">
-        <div class="fighter-health player-health">
-            <div class="fighter-info">
-                <span class="fighter-name">{playerFighter.name}</span>
-                <span class="health-text">{playerFighter.health}/{playerFighter.maxHealth}</span>
+    {#if battlePlayerFighter && battleAiFighter}
+        <div class="health-bars">
+            <div class="fighter-health player-health">
+                <div class="fighter-info">
+                    <span class="fighter-name">{battlePlayerFighter.name}</span>
+                    <span class="health-text">{battlePlayerFighter.health}/{battlePlayerFighter.maxHealth}</span>
+                </div>
+                <div class="health-bar">
+                    <div
+                            class="health-fill player-fill"
+                            style="width: {(battlePlayerFighter.health / battlePlayerFighter.maxHealth) * 100}%"
+                    ></div>
+                </div>
             </div>
-            <div class="health-bar">
-                <div
-                        class="health-fill player-fill"
-                        style="width: {(playerFighter.health / playerFighter.maxHealth) * 100}%"
-                ></div>
+
+            <div class="vs-indicator">VS</div>
+
+            <div class="fighter-health ai-health">
+                <div class="fighter-info">
+                    <span class="fighter-name">{battleAiFighter.name}</span>
+                    <span class="health-text">{battleAiFighter.health}/{battleAiFighter.maxHealth}</span>
+                </div>
+                <div class="health-bar">
+                    <div
+                            class="health-fill ai-fill"
+                            style="width: {(battleAiFighter.health / battleAiFighter.maxHealth) * 100}%"
+                    ></div>
+                </div>
             </div>
         </div>
-
-        <div class="vs-indicator">VS</div>
-
-        <div class="fighter-health ai-health">
-            <div class="fighter-info">
-                <span class="fighter-name">{aiFighter.name}</span>
-                <span class="health-text">{aiFighter.health}/{aiFighter.maxHealth}</span>
-            </div>
-            <div class="health-bar">
-                <div
-                        class="health-fill ai-fill"
-                        style="width: {(aiFighter.health / aiFighter.maxHealth) * 100}%"
-                ></div>
-            </div>
-        </div>
-    </div>
+    {/if}
 
     <!-- Status Effects -->
     <div class="status-section">
-        {#if playerStatus.length > 0}
+        {#if playerStatus.length > 0 && battlePlayerFighter}
             <StatusEffects
                     statusEffects={playerStatus}
-                    fighterName={playerFighter.name}
+                    fighterName={battlePlayerFighter.name}
             />
         {/if}
 
-        {#if aiStatus.length > 0}
+        {#if aiStatus.length > 0 && battleAiFighter}
             <StatusEffects
                     statusEffects={aiStatus}
-                    fighterName={aiFighter.name}
+                    fighterName={battleAiFighter.name}
             />
         {/if}
     </div>
 
     <!-- Move Selection -->
-    {#if showMoveSelection && !battleEnded}
+    {#if showMoveSelection && !battleEnded && isPlayerTurn && battlePlayerFighter}
         <MoveSelection
-                {playerFighter}
-                opponentFighter={aiFighter}
+                playerFighter={battlePlayerFighter}
+                opponentFighter={battleAiFighter}
                 availableMoves={playerMoves}
                 ppCounters={playerPP}
                 {isPlayerTurn}
-                disabled={animationInProgress || aiThinking}
+                disabled={animationInProgress || aiThinking || battleEnded}
                 on:move-selected={handlePlayerMoveSelection}
                 on:pp-warning={handlePPWarning}
         />
@@ -468,13 +548,20 @@
     <!-- Combat Log -->
     <div class="combat-log">
         <div class="log-header">
-            <h3>⚔️ Battle Log</h3>
-            {#if aiThinking}
-                <div class="ai-thinking-indicator">
-                    <span class="thinking-text">AI is strategizing...</span>
-                    <div class="thinking-animation">🤔</div>
-                </div>
-            {/if}
+            <h3>📋 Battle Log</h3>
+            <div class="log-controls">
+                {#if battleEnded && !showBattleEndOverlay}
+                    <div class="post-battle-controls">
+                        <button class="log-action-button" on:click={resetBattle}>🔄 Replay</button>
+                        <button class="log-action-button" on:click={backToMenu}>🏠 Main Menu</button>
+                    </div>
+                {:else if aiThinking}
+                    <div class="ai-thinking-indicator">
+                        <span class="thinking-text">AI Analyzing...</span>
+                        <div class="thinking-animation">🤔</div>
+                    </div>
+                {/if}
+            </div>
         </div>
 
         <div class="combat-log-entries">
@@ -493,11 +580,11 @@
     </div>
 
     <!-- Battle End Screen -->
-    {#if battleEnded}
+    {#if battleEnded && battlePlayerFighter && showBattleEndOverlay}
         <div class="battle-end-overlay">
             <div class="battle-result">
                 <div class="result-header">
-                    {#if winner === playerFighter.name}
+                    {#if winner === battlePlayerFighter.name}
                         <h2 class="victory">🎉 Victory!</h2>
                         <p>You defeated the {aiLevel} AI!</p>
                     {:else}
@@ -513,17 +600,23 @@
                     </div>
                     <div class="stat">
                         <span class="stat-label">Your Final HP:</span>
-                        <span class="stat-value">{playerFighter.health}</span>
+                        <span class="stat-value">{battlePlayerFighter.health}</span>
                     </div>
                     <div class="stat">
                         <span class="stat-label">AI Final HP:</span>
-                        <span class="stat-value">{aiFighter.health}</span>
+                        <span class="stat-value">{battleAiFighter.health}</span>
                     </div>
                 </div>
 
                 <div class="battle-actions">
-                    <button class="rematch-button" on:click={resetBattle}>
+                    <button class="action-button secondary-button" on:click={() => {showBattleEndOverlay = false}}>
+                        📋 View Battle Log
+                    </button>
+                    <button class="action-button primary-button" on:click={resetBattle}>
                         🔄 New Battle
+                    </button>
+                    <button class="action-button secondary-button" on:click={backToMenu}>
+                        🏠 Back to Menu
                     </button>
                 </div>
             </div>
@@ -537,20 +630,27 @@
         margin: 0 auto;
         padding: 20px;
         font-family: 'Courier New', monospace;
-        color: #fff;
+        color: #f1f5f9;
         position: relative;
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+        min-height: 100vh;
+        border-radius: 10px;
     }
 
-    /* Battle Header */
+    :global(.theme-dark) .combat-interface {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    }
+
     .battle-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
         padding: 15px;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(148, 163, 184, 0.15);
         border-radius: 10px;
-        border: 1px solid #333;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        backdrop-filter: blur(10px);
     }
 
     .turn-indicator {
@@ -561,8 +661,8 @@
 
     .turn-number {
         font-size: 1.2rem;
-        font-weight: bold;
-        color: #4ecdc4;
+        font-weight: 600;
+        color: #3b82f6;
     }
 
     .current-turn {
@@ -571,17 +671,22 @@
 
     .player-turn {
         color: #22c55e;
-        font-weight: bold;
+        font-weight: 600;
     }
 
     .ai-turn {
         color: #f59e0b;
-        font-weight: bold;
+        font-weight: 600;
+    }
+
+    .ai-thinking {
+        color: #8b5cf6;
+        font-weight: 600;
     }
 
     .battle-ended {
         color: #ec4899;
-        font-weight: bold;
+        font-weight: 600;
     }
 
     .ai-level-indicator {
@@ -591,7 +696,7 @@
     }
 
     .ai-level-label {
-        color: #ccc;
+        color: #cbd5e1;
         font-size: 0.9rem;
     }
 
@@ -599,7 +704,7 @@
         padding: 4px 12px;
         border-radius: 12px;
         font-size: 0.8rem;
-        font-weight: bold;
+        font-weight: 600;
     }
 
     .level-easy {
@@ -613,11 +718,10 @@
     }
 
     .level-hard {
-        background: #ef4444;
+        background: #dc2626;
         color: #fff;
     }
 
-    /* Health Bars */
     .health-bars {
         display: grid;
         grid-template-columns: 1fr auto 1fr;
@@ -639,21 +743,21 @@
     }
 
     .fighter-name {
-        font-weight: bold;
-        color: #4ecdc4;
+        font-weight: 600;
+        color: #3b82f6;
     }
 
     .health-text {
-        color: #ccc;
+        color: #cbd5e1;
         font-size: 0.9rem;
     }
 
     .health-bar {
         height: 12px;
-        background: #333;
+        background: rgba(148, 163, 184, 0.3);
         border-radius: 6px;
         overflow: hidden;
-        border: 1px solid #555;
+        border: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     .health-fill {
@@ -667,27 +771,26 @@
     }
 
     .ai-fill {
-        background: linear-gradient(90deg, #ef4444, #dc2626);
+        background: linear-gradient(90deg, #dc2626, #b91c1c);
     }
 
     .vs-indicator {
         font-size: 1.5rem;
-        font-weight: bold;
-        color: #ff6b6b;
+        font-weight: 600;
+        color: #60a5fa;
         text-align: center;
     }
 
-    /* Status Effects */
     .status-section {
         margin-bottom: 20px;
     }
 
-    /* Combat Log */
     .combat-log {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid #333;
+        background: rgba(148, 163, 184, 0.1);
+        border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 10px;
         margin-top: 20px;
+        backdrop-filter: blur(10px);
     }
 
     .log-header {
@@ -695,19 +798,62 @@
         justify-content: space-between;
         align-items: center;
         padding: 15px;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     .log-header h3 {
         margin: 0;
-        color: #4ecdc4;
+        color: #3b82f6;
+    }
+
+    .post-battle-controls {
+        display: flex;
+        gap: 10px;
+    }
+
+    .log-action-button {
+        background: rgba(37, 99, 235, 0.8);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: inherit;
+    }
+
+    .educational-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 8px;
+        background: rgba(37, 99, 235, 0.1);
+        border-radius: 4px;
+        margin-top: 6px;
+        border: 1px solid rgba(37, 99, 235, 0.2);
+    }
+
+    .education-icon {
+        color: #3b82f6;
+        font-size: 0.9rem;
+        margin-top: 1px;
+        flex-shrink: 0;
+    }
+
+    .education-text {
+        color: #cbd5e1;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        font-style: italic;
     }
 
     .ai-thinking-indicator {
         display: flex;
         align-items: center;
         gap: 8px;
-        color: #f59e0b;
+        color: #8b5cf6;
     }
 
     .thinking-text {
@@ -725,62 +871,41 @@
     }
 
     .combat-log-entries {
-        max-height: 300px;
+        max-height: 350px;
         overflow-y: auto;
         padding: 15px;
     }
 
     .log-entry {
-        margin-bottom: 12px;
-        padding: 10px;
+        margin-bottom: 8px;
+        padding: 8px;
         border-radius: 6px;
-        background: rgba(255, 255, 255, 0.03);
-        border-left: 3px solid #333;
+        background: rgba(148, 163, 184, 0.05);
+        border-left: 3px solid #64748b;
+        transition: all 0.3s ease;
     }
 
     .log-entry.latest {
-        background: rgba(78, 205, 196, 0.1);
-        border-left-color: #4ecdc4;
+        background: rgba(37, 99, 235, 0.15);
+        border-left-color: #2563eb;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
     }
 
-    .message-attack { border-left-color: #ef4444; }
+    .message-attack { border-left-color: #dc2626; }
     .message-critical { border-left-color: #f59e0b; }
     .message-super_effective { border-left-color: #22c55e; }
     .message-not_effective { border-left-color: #6b7280; }
     .message-status { border-left-color: #8b5cf6; }
-    .message-info { border-left-color: #4ecdc4; }
+    .message-info { border-left-color: #3b82f6; }
     .message-miss { border-left-color: #64748b; }
 
     .message-text {
-        color: #fff;
-        font-weight: bold;
-        margin-bottom: 5px;
+        color: #f1f5f9;
+        font-weight: 500;
+        line-height: 1.3;
+        font-size: 0.95rem;
     }
 
-    .educational-note {
-        display: flex;
-        align-items: flex-start;
-        gap: 6px;
-        padding: 8px;
-        background: rgba(78, 205, 196, 0.1);
-        border-radius: 4px;
-        margin-top: 5px;
-    }
-
-    .education-icon {
-        color: #4ecdc4;
-        font-size: 0.9rem;
-        margin-top: 1px;
-    }
-
-    .education-text {
-        color: #e5e7eb;
-        font-size: 0.85rem;
-        line-height: 1.4;
-        font-style: italic;
-    }
-
-    /* Battle End Overlay */
     .battle-end-overlay {
         position: absolute;
         top: 0;
@@ -793,16 +918,23 @@
         justify-content: center;
         z-index: 100;
         backdrop-filter: blur(5px);
+        border-radius: 10px;
     }
 
     .battle-result {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border: 3px solid #4ecdc4;
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+        border: 3px solid #2563eb;
         border-radius: 15px;
         padding: 30px;
         text-align: center;
         max-width: 400px;
         width: 90%;
+        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+    }
+
+    :global(.theme-dark) .battle-result {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+        border-color: #3b82f6;
     }
 
     .result-header h2 {
@@ -810,12 +942,17 @@
         font-size: 2rem;
     }
 
+    .result-header p {
+        margin: 0 0 20px 0;
+        color: #cbd5e1;
+    }
+
     .victory {
         color: #22c55e;
     }
 
     .defeat {
-        color: #ef4444;
+        color: #dc2626;
     }
 
     .battle-stats {
@@ -828,38 +965,78 @@
     .stat {
         display: flex;
         justify-content: space-between;
-        padding: 5px 0;
-        border-bottom: 1px solid #333;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     .stat-label {
-        color: #ccc;
+        color: #cbd5e1;
     }
 
     .stat-value {
-        color: #4ecdc4;
-        font-weight: bold;
+        color: #3b82f6;
+        font-weight: 600;
     }
 
-    .rematch-button {
-        background: linear-gradient(45deg, #4ecdc4, #45b7d1);
-        color: white;
-        border: none;
+    .battle-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .action-button {
         padding: 12px 24px;
+        border: none;
         border-radius: 8px;
-        font-size: 1.1rem;
-        font-weight: bold;
+        font-size: 1rem;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
         font-family: inherit;
     }
 
-    .rematch-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(78, 205, 196, 0.3);
+    .primary-button {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        color: white;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
     }
 
-    /* Responsive */
+    .primary-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+    }
+
+    .secondary-button {
+        background: rgba(71, 85, 105, 0.8);
+        color: #e2e8f0;
+        border: 2px solid #475569;
+    }
+
+    .secondary-button:hover {
+        background: #64748b;
+        border-color: #64748b;
+        transform: translateY(-2px);
+    }
+
+    .combat-log-entries::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .combat-log-entries::-webkit-scrollbar-track {
+        background: rgba(148, 163, 184, 0.1);
+        border-radius: 4px;
+    }
+
+    .combat-log-entries::-webkit-scrollbar-thumb {
+        background: #2563eb;
+        border-radius: 4px;
+    }
+
+    .combat-log-entries::-webkit-scrollbar-thumb:hover {
+        background: #3b82f6;
+    }
+
     @media (max-width: 768px) {
         .combat-interface {
             padding: 15px;
@@ -882,16 +1059,31 @@
 
         .combat-log-entries {
             max-height: 250px;
+            padding: 10px;
         }
 
         .battle-result {
             padding: 20px;
+            margin: 0 10px;
         }
-        .combat-log-entries {
-    max-height: 40vh;       /* adjusts based on viewport height */
-    min-height: 200px;      /* so it doesn’t shrink too much */
-    overflow-y: auto;
-    padding: 15px;
-}
+
+        .log-entry {
+            padding: 6px;
+            margin-bottom: 6px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .turn-number {
+            font-size: 1rem;
+        }
+
+        .result-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .message-text {
+            font-size: 0.9rem;
+        }
     }
 </style>

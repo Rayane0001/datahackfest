@@ -16,34 +16,33 @@ export function generateAttackMessage(
 ): CombatMessage {
     if (missed) {
         return {
-            message: `${attackerName}'s ${moveName} missed!`,
-            educational: "In ML, this represents poor model accuracy - the algorithm failed to make a correct prediction.",
+            message: `💨 ${attackerName}'s ${moveName} missed!`,
+            educational: "High bias: model too simple, underfits data patterns",
             type: 'miss'
         };
     }
 
-    let message = `${attackerName} uses ${moveName}!`;
-    let educational = "";
+    let message = `⚔️ ${attackerName} uses ${moveName}`;
+    let educational = getDetailedEducationalNote(moveName);
     let type: CombatMessage['type'] = 'attack';
 
     if (isCritical) {
-        message += ` Critical hit!`;
-        educational = "Critical hits represent when an algorithm performs exceptionally well, like finding optimal hyperparameters.";
+        message += ` - CRITICAL HIT`;
+        educational = "Perfect hyperparameter tuning: learning rate, regularization optimal!";
         type = 'critical';
     }
 
     if (effectiveness > 1.2) {
-        message += ` It's super effective!`;
-        educational = "Super effectiveness shows when an algorithm is well-suited for the problem type - like using neural networks for image recognition.";
+        message += ` - SUPER EFFECTIVE`;
+        educational = "Algorithm-data match: CNN for images, RNN for sequences, SVM for small datasets";
         type = 'super_effective';
     } else if (effectiveness < 0.9) {
-        message += ` It's not very effective...`;
-        educational = "Poor effectiveness happens when an algorithm doesn't match the problem - like using linear regression for complex non-linear data.";
+        message += ` - not very effective`;
+        educational = "Algorithm mismatch: linear model on non-linear data, deep learning on small dataset";
         type = 'not_effective';
     }
 
-    message += ` Deals ${damage} damage!`;
-
+    message += `! ${damage} damage!`;
     return { message, educational, type };
 }
 
@@ -55,34 +54,34 @@ export function generateStatusMessage(
     if (applied) {
         const messages: Record<string, { message: string; educational: string }> = {
             overfitting: {
-                message: `${targetName} is overfitting! High training accuracy but poor generalization!`,
-                educational: "Overfitting occurs when a model learns training data too well, including noise, reducing performance on new data."
+                message: `${targetName} is overfitting!`,
+                educational: "Memorizes training data, fails on new examples"
             },
             underfitting: {
-                message: `${targetName} is underfitting! The model is too simple for the data!`,
-                educational: "Underfitting happens when a model is too simple to capture underlying patterns in the data."
+                message: `${targetName} is underfitting!`,
+                educational: "Model too simple for data patterns"
             },
             'curse-dimensionality': {
-                message: `${targetName} suffers from the curse of dimensionality! Too many features!`,
-                educational: "Curse of dimensionality occurs when algorithms struggle with high-dimensional data due to sparse data distribution."
+                message: `${targetName} suffers curse of dimensionality!`,
+                educational: "Too many features, sparse data distribution"
             },
             'data-leakage': {
-                message: `${targetName} has data leakage! Artificially inflated performance detected!`,
-                educational: "Data leakage happens when future information accidentally gets into training data, creating unrealistic performance."
+                message: `${targetName} has data leakage!`,
+                educational: "Future info leaked into training"
             }
         };
 
         const statusInfo = messages[statusEffect];
         return {
             message: statusInfo?.message || `${targetName} is affected by ${statusEffect}!`,
-            educational: statusInfo?.educational || `${statusEffect} is a common ML challenge that affects model performance.`,
+            educational: statusInfo?.educational || `${statusEffect} affects ML performance`,
             type: 'status'
         };
     }
 
     return {
         message: `${targetName} resisted the status effect!`,
-        educational: "Some algorithms have built-in resistance to certain problems through regularization or robust design.",
+        educational: "Built-in regularization provides resistance",
         type: 'info'
     };
 }
@@ -90,35 +89,35 @@ export function generateStatusMessage(
 export function generateMoveExplanation(moveName: string): CombatMessage {
     const explanations: Record<string, { message: string; educational: string }> = {
         'Bootstrap Assault': {
-            message: "Creates multiple training datasets through resampling!",
-            educational: "Bootstrap sampling creates multiple datasets by sampling with replacement, allowing Random Forest to train diverse trees."
+            message: "Creates multiple training datasets!",
+            educational: "Sampling with replacement for diverse models"
         },
         'Gradient Descent': {
-            message: "Iteratively optimizing towards the global minimum!",
-            educational: "Gradient descent follows the steepest slope to minimize the loss function, finding optimal model parameters."
+            message: "Optimizing towards global minimum!",
+            educational: "Iteratively minimizes loss function"
         },
         'Kernel Trick': {
-            message: "Transforming data to higher dimensions for better separation!",
-            educational: "The kernel trick allows SVM to find non-linear decision boundaries by mapping data to higher-dimensional spaces."
+            message: "Transforms to higher dimensions!",
+            educational: "Maps data for non-linear separation"
         },
         'Prior Strike': {
-            message: "Using historical class probabilities for prediction!",
-            educational: "Prior probabilities represent the base rates of each class before considering any features."
+            message: "Uses historical probabilities!",
+            educational: "Bayesian approach with class priors"
         },
         'Weak Learner Swarm': {
-            message: "Combining many simple models for collective strength!",
-            educational: "Gradient boosting uses many weak learners (like decision stumps) that together form a strong predictor."
+            message: "Combines simple models!",
+            educational: "Ensemble of weak learners = strong predictor"
         },
         'Centroid Shift': {
-            message: "Repositioning cluster centers for optimal grouping!",
-            educational: "K-means updates centroids to the mean position of assigned points, iteratively improving cluster quality."
+            message: "Repositions cluster centers!",
+            educational: "K-means optimization step"
         }
     };
 
     const explanation = explanations[moveName];
     return {
-        message: explanation?.message || `${moveName} is executed with precision!`,
-        educational: explanation?.educational || `${moveName} represents a core concept in machine learning algorithms.`,
+        message: explanation?.message || `${moveName} executed!`,
+        educational: explanation?.educational || `Core ML technique`,
         type: 'info'
     };
 }
@@ -130,17 +129,9 @@ export function generateTurnStartMessage(
     turn: number
 ): CombatMessage {
     const currentPlayer = isPlayerTurn ? playerName : aiName;
-
-    if (turn === 1) {
-        return {
-            message: `⚔️ Battle begins! ${currentPlayer} goes first!`,
-            educational: "In ML competitions, the order of algorithm evaluation can sometimes affect results due to computational resources or data ordering.",
-            type: 'info'
-        };
-    }
-
     return {
-        message: `Turn ${turn}: ${currentPlayer}'s move!`,
+        message: `🎯 ${currentPlayer}'s turn`,
+        educational: "Each turn = one training iteration",
         type: 'info'
     };
 }
@@ -148,22 +139,22 @@ export function generateTurnStartMessage(
 export function generatePPWarning(moveName: string, remainingPP: number): CombatMessage {
     if (remainingPP === 0) {
         return {
-            message: `${moveName} has no PP left! Cannot use this move!`,
-            educational: "In ML, this represents computational resource exhaustion - the algorithm has reached its processing limit.",
+            message: `${moveName} has no PP left!`,
+            educational: "Computational resources exhausted",
             type: 'info'
         };
     }
 
     if (remainingPP <= 2) {
         return {
-            message: `${moveName} is running low! Only ${remainingPP} uses remaining!`,
-            educational: "Resource management is crucial in ML - algorithms must balance accuracy with computational efficiency.",
+            message: `${moveName} running low! ${remainingPP} uses left`,
+            educational: "Resource management is crucial in ML",
             type: 'info'
         };
     }
 
     return {
-        message: `${moveName} has ${remainingPP} uses remaining.`,
+        message: `${moveName} has ${remainingPP} uses remaining`,
         type: 'info'
     };
 }
@@ -174,8 +165,8 @@ export function generateEndBattleMessage(
     finalDamage: number
 ): CombatMessage {
     return {
-        message: `🏆 ${winnerName} wins the battle! ${loserName} has been defeated!`,
-        educational: `The winning algorithm demonstrated superior performance on this dataset. In real ML, model selection depends on problem type, data size, and computational constraints.`,
+        message: `🏆 ${winnerName} wins! ${loserName} defeated!`,
+        educational: "Superior algorithm performance on this dataset",
         type: 'info'
     };
 }
@@ -186,21 +177,40 @@ export function generateAIReasoningMessage(
     reasoning: string,
     confidence: number
 ): CombatMessage {
-    const confidenceText = confidence > 0.8 ? "very confident" : confidence > 0.5 ? "moderately confident" : "uncertain";
-
+    const shortReasoning = reasoning.length > 35 ? reasoning.substring(0, 32) + "..." : reasoning;
     return {
-        message: `🤖 ${aiName} is ${confidenceText}: "${reasoning}"`,
-        educational: `AI decision-making in ML involves evaluating multiple factors like data patterns, computational cost, and expected performance.`,
+        message: `🤖 ${aiName}: "${shortReasoning}"`,
+        educational: `Decision confidence ${Math.round(confidence * 100)}% - high confidence means model is certain about prediction`,
         type: 'info'
     };
 }
 
+function getDetailedEducationalNote(moveName: string): string {
+    const notes: Record<string, string> = {
+        'Bootstrap Assault': 'Random Forest trains multiple trees on different data samples (bagging) to reduce overfitting',
+        'Gradient Descent': 'Optimization algorithm: follows negative gradient to minimize loss function step by step',
+        'Kernel Trick': 'SVM maps data to higher dimensions using kernel functions (RBF, polynomial) for non-linear separation',
+        'Prior Strike': 'Naive Bayes uses class priors P(class) from training data frequency',
+        'Posterior Slam': 'Bayes theorem: P(class|features) = P(features|class) × P(class) / P(features)',
+        'Likelihood Blast': 'P(features|class): probability of seeing these features given the class',
+        'Weak Learner Swarm': 'Gradient Boosting combines many weak models (decision stumps) sequentially',
+        'Centroid Shift': 'K-means moves cluster centers to mean of assigned points, minimizing within-cluster variance',
+        'Backpropagation Blast': 'Neural networks propagate error gradients backward through layers to update weights',
+        'Tree Vote': 'Random Forest final prediction: majority vote (classification) or average (regression)',
+        'Support Vector Strike': 'SVM finds maximum margin hyperplane using support vectors (closest points)',
+        'Hyperplane Slash': 'Decision boundary that maximally separates classes in feature space',
+        'Feature Bagging': 'Random Forest selects sqrt(n_features) random features per tree to reduce correlation',
+        'Convergence Lock': 'Algorithm stops when loss function change < threshold or max iterations reached'
+    };
+    return notes[moveName] || 'Fundamental machine learning technique with mathematical foundation';
+}
+
 // Educational tooltips for specific situations
 export const EDUCATIONAL_TOOLTIPS = {
-    typeAdvantage: "Type advantages in ML combat represent real algorithmic strengths - neural networks excel at pattern recognition, while SVMs work better with smaller datasets.",
-    criticalHit: "Critical hits represent finding optimal hyperparameters or achieving exceptional performance on validation data.",
-    statusEffects: "Status effects mirror real ML challenges like overfitting, underfitting, and the curse of dimensionality.",
-    ppSystem: "PP (Power Points) represents computational resources - more powerful algorithms often require more processing power.",
-    turnBased: "Turn-based combat allows for strategic thinking, similar to how data scientists carefully choose algorithms and hyperparameters.",
-    aiDifficulty: "Different AI levels represent varying expertise levels in ML - from beginner data scientists to expert researchers."
+    typeAdvantage: "Algorithmic advantages: Neural nets excel at patterns, SVMs work with small datasets",
+    criticalHit: "Finding optimal hyperparameters or breakthrough accuracy",
+    statusEffects: "Real ML challenges: overfitting, underfitting, dimensionality",
+    ppSystem: "Computational resources - powerful algorithms need more processing",
+    turnBased: "Strategic thinking like data scientists choosing algorithms",
+    aiDifficulty: "Expertise levels: rookie to expert ML practitioners"
 };
