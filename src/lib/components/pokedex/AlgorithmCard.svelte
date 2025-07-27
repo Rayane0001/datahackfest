@@ -4,7 +4,7 @@
     import { getAlgorithmSprites } from '$lib/stores/theme';
     import { ALGORITHM_CONFIGS } from '$lib/ml/algorithms';
     import { getMovesByAlgorithm } from '$lib/data/moves';
-    import { getTypeMatchups, ALGORITHM_TYPES } from '$lib/data/type-advantages';
+    import { getTypeMatchups } from '$lib/data/type-advantages';
 
     export let algorithmName: string;
     export let showBackButton: boolean = true;
@@ -13,8 +13,8 @@
 
     $: config = ALGORITHM_CONFIGS[algorithmName];
     $: moves = getMovesByAlgorithm(algorithmName);
-    $: algorithmType = ALGORITHM_TYPES[algorithmName];
-    $: typeMatchups = getTypeMatchups(algorithmType);
+    $: algorithmType = config?.type; // Use type from ALGORITHM_CONFIGS
+    $: typeMatchups = getTypeMatchups(algorithmType as any);
     $: algorithmSprites = getAlgorithmSprites(algorithmName);
 
     // Tooltip state
@@ -745,13 +745,13 @@
         border-top: 8px solid #2563eb;
     }
 
-    /* Type colors */
-    .type-ensemble { background: #2563eb; }
-    .type-neural { background: #1e40af; }
-    .type-geometric { background: #1d4ed8; }
-    .type-boosting { background: #3b82f6; }
-    .type-probabilistic { background: #60a5fa; }
-    .type-clustering { background: #93c5fd; }
+    /* Updated type colors to match algorithms.ts */
+    .type-forest { background: #22c55e; }
+    .type-neural { background: #3b82f6; }
+    .type-svm { background: #ef4444; }
+    .type-gradient { background: #f59e0b; }
+    .type-bayes { background: #ec4899; }
+    .type-kmeans { background: #8b5cf6; }
 
     /* Responsive */
     @media (max-width: 768px) {

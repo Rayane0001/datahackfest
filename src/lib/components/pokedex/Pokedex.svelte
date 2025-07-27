@@ -3,7 +3,6 @@
     import { createEventDispatcher } from 'svelte';
     import { getAlgorithmSprites } from '$lib/stores/theme';
     import { ALGORITHM_CONFIGS } from '$lib/ml/algorithms';
-    import { ALGORITHM_TYPES } from '$lib/data/type-advantages';
     import AlgorithmCard from './AlgorithmCard.svelte';
 
     const dispatch = createEventDispatcher();
@@ -13,25 +12,28 @@
     let searchTerm = '';
     let selectedTypeFilter = 'all';
 
-    // Algorithm data with sprites and icons
-    const algorithms = Object.keys(ALGORITHM_CONFIGS).map(name => ({
-        name,
-        config: ALGORITHM_CONFIGS[name],
-        type: ALGORITHM_TYPES[name],
-        sprite: getAlgorithmSprites(name).front,
-        icon: getAlgorithmIcon(name),
-        id: Object.keys(ALGORITHM_CONFIGS).indexOf(name) + 1
-    }));
+    // Algorithm data with sprites and icons - using correct type mapping
+    const algorithms = Object.keys(ALGORITHM_CONFIGS).map(name => {
+        const config = ALGORITHM_CONFIGS[name];
+        return {
+            name,
+            config,
+            type: config.type, // Use the type from ALGORITHM_CONFIGS
+            sprite: getAlgorithmSprites(name).front,
+            icon: getAlgorithmIcon(name),
+            id: Object.keys(ALGORITHM_CONFIGS).indexOf(name) + 1
+        };
+    });
 
-    // Type filter options
+    // Type filter options - updated to match the new types
     const typeFilters = [
         { value: 'all', label: 'All Types', color: '#64748b' },
-        { value: 'ensemble', label: 'Ensemble', color: '#2563eb' },
-        { value: 'neural', label: 'Neural', color: '#1e40af' },
-        { value: 'geometric', label: 'Geometric', color: '#1d4ed8' },
-        { value: 'boosting', label: 'Boosting', color: '#3b82f6' },
-        { value: 'probabilistic', label: 'Probabilistic', color: '#60a5fa' },
-        { value: 'clustering', label: 'Clustering', color: '#93c5fd' }
+        { value: 'forest', label: 'Forest', color: '#22c55e' },
+        { value: 'neural', label: 'Neural', color: '#3b82f6' },
+        { value: 'svm', label: 'SVM', color: '#ef4444' },
+        { value: 'gradient', label: 'Gradient', color: '#f59e0b' },
+        { value: 'bayes', label: 'Bayes', color: '#ec4899' },
+        { value: 'kmeans', label: 'K-Means', color: '#8b5cf6' }
     ];
 
     // Filtered algorithms based on search and type
@@ -649,13 +651,13 @@
         color: #64748b;
     }
 
-    /* Type colors */
-    .type-ensemble { background: #2563eb; }
-    .type-neural { background: #1e40af; }
-    .type-geometric { background: #1d4ed8; }
-    .type-boosting { background: #3b82f6; }
-    .type-probabilistic { background: #60a5fa; }
-    .type-clustering { background: #93c5fd; }
+    /* Updated type colors to match algorithms.ts */
+    .type-forest { background: #22c55e; }
+    .type-neural { background: #3b82f6; }
+    .type-svm { background: #ef4444; }
+    .type-gradient { background: #f59e0b; }
+    .type-bayes { background: #ec4899; }
+    .type-kmeans { background: #8b5cf6; }
 
     /* Responsive */
     @media (max-width: 768px) {
