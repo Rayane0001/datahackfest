@@ -3,10 +3,10 @@ let currentAudio: HTMLAudioElement | null = null;
 export function playAudio(src: string, infinite = false) {
   try {
     // Stop previous audio if playing
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-    }
+    // if (currentAudio) {
+    //   currentAudio.pause();
+    //   currentAudio.currentTime = 0;
+    // }
 
     // Load and play new audio
     currentAudio = new Audio(src);
