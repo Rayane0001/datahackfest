@@ -1,5 +1,6 @@
 <!-- @file src/lib/components/arena/ArenaHeader.svelte -->
 <script lang="ts">
+	import { playAudio } from '$lib/stores/audioPlayer';
     import { createEventDispatcher } from 'svelte';
 
     export let datasetAnalysis: any = null;
@@ -9,10 +10,12 @@
     const dispatch = createEventDispatcher();
 
     function handleBack() {
+        playAudio('/audio/button_real.wav')
         dispatch('back');
     }
 
     function handlePokedex() {
+        playAudio('/audio/button_real.wav')
         dispatch('pokedex');
     }
 </script>

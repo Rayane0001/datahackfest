@@ -15,17 +15,21 @@
     const dispatch = createEventDispatcher();
 
     function setBattleMode(mode: 'tactical' | 'pokemon') {
+        playAudio('/audio/button_real.wav')
         battleMode = mode;
     }
 
     function setAILevel(level: AILevel) {
+        playAudio('/audio/button_real.wav')
         selectedAILevel = level;
     }
 
     function startBattle() {
         if (!fighter1 || !fighter2) return;
-        playAudio(`/audio/fight.mp3`)
-
+        playAudio(`/audio/battle.wav`)
+        setTimeout(() => {
+            playAudio("/audio/fight.mp3")
+        }, 250)
         dispatch('battle-start', {
             mode: battleMode,
             aiLevel: selectedAILevel

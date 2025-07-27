@@ -104,9 +104,12 @@
                         <h3>Upload Dataset</h3>
                         <p>Drop your CSV file here or click to select</p>
                         <button class="upload-button" on:click={() => {
-                            document.getElementById('file-input')?.click()
-                            playAudio('/audio/super_mario.mp3', true);
-                            }}>
+                        playAudio('/audio/button_real.wav');
+                        setTimeout(() => {
+                        playAudio('/audio/super_mario.mp3', true);
+                        document.getElementById('file-input')?.click()
+                        }, 250); // 10ms is usually enough
+                        }}>
                             Choose Dataset
                         </button>
                         <input

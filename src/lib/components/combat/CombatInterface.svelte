@@ -887,5 +887,11 @@
         .battle-result {
             padding: 20px;
         }
+        .combat-log-entries {
+    max-height: 40vh;       /* adjusts based on viewport height */
+    min-height: 200px;      /* so it doesn’t shrink too much */
+    overflow-y: auto;
+    padding: 15px;
+}
     }
 </style>

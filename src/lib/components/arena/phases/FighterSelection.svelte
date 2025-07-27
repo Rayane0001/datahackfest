@@ -26,6 +26,7 @@
     ];
 
     async function selectFighter(slot: 1 | 2, algorithm: any) {
+        playAudio("/audio/button_real.wav")
         if (!currentDataset) {
             alert('Please upload a dataset first!');
             return;
@@ -56,6 +57,7 @@
     }
 
     function proceedToBattle() {
+        playAudio("/audio/button_real.wav")
         if (fighter1 && fighter2) {
             dispatch('fighters-selected', { fighter1, fighter2 });
         }
@@ -127,7 +129,10 @@
                             <span>{(fighter1.precision * 100).toFixed(1)}%</span>
                         </div>
                     </div>
-                    <button class="change-fighter-button" on:click={() => fighter1 = null}>
+                    <button class="change-fighter-button" on:click={() => {
+                        playAudio('/audio/button_real.wav')
+                        fighter1 = null
+                    }}>
                         🔄 Change Fighter
                     </button>
                 </div>
@@ -137,7 +142,10 @@
                         <button
                                 class="pokemon-card"
                                 style="--type-color: {algo.color}"
-                                on:click={() => {selectFighter(1, algo); playAudio(`/audio/${algo.type}.mp3`, true) }}
+                                on:click={() => {
+                                    selectFighter(1, algo); 
+                                    setTimeout(() => playAudio(`/audio/${algo.type}.mp3`, true), 250)
+                                }}
                                 disabled={isLoading}
                         >
                             <div class="card-sprite-container">
@@ -212,7 +220,10 @@
                             <span>{(fighter2.precision * 100).toFixed(1)}%</span>
                         </div>
                     </div>
-                    <button class="change-fighter-button" on:click={() => fighter2 = null}>
+                    <button class="change-fighter-button" on:click={() => {
+                        playAudio('/audio/button_real.wav')
+                        fighter2 = null
+                    }}>
                         🔄 Change Fighter
                     </button>
                 </div>

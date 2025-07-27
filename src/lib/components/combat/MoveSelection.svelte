@@ -734,4 +734,10 @@
             max-height: 50vh;
         }
     }
+
+    .move-selection {
+    height: 280px;
+    overflow-y: auto; /* scrolls if content overflows */
+    overflow-x: hidden;
+}
 </style>
