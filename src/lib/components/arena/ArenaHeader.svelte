@@ -1,5 +1,6 @@
 <!-- @file src/lib/components/arena/ArenaHeader.svelte -->
 <script lang="ts">
+	import { playAudio } from '$lib/stores/audioPlayer';
     import { createEventDispatcher } from 'svelte';
 
     export let datasetAnalysis: any = null;
@@ -9,16 +10,18 @@
     const dispatch = createEventDispatcher();
 
     function handleBack() {
+        playAudio('/audio/button_real.wav')
         dispatch('back');
     }
 
     function handlePokedex() {
+        playAudio('/audio/button_real.wav')
         dispatch('pokedex');
     }
 </script>
 
 <div class="arena-header">
-    <h1>🥊 Predictive Combat Arena</h1>
+    <h1>⚔️ Predictive Combat Arena</h1>
 
     {#if datasetAnalysis}
         <div class="dataset-info">
@@ -30,12 +33,12 @@
 
             {#if showPokedexButton}
                 <button class="pokedex-button" on:click={handlePokedex}>
-                    📖 Pokedex
+                    <img src="/icons/pokedex.png" style="height:30px" /> Algorithm Database
                 </button>
             {/if}
 
             <div class="current-dataset">
-                📊 {datasetAnalysis.name} (Level {datasetAnalysis.difficulty})
+                <img src="/icons/dataset.png" style="height:30px" /> {datasetAnalysis.name} (Level {datasetAnalysis.difficulty})
             </div>
         </div>
     {:else}
@@ -53,10 +56,14 @@
     .arena-header h1 {
         font-size: 2.5rem;
         margin: 0 0 20px 0;
-        background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #f1f5f9;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .arena-header p {
+        color: #cbd5e1;
+        font-size: 1.1rem;
+        margin: 0;
     }
 
     .dataset-info {
@@ -68,49 +75,77 @@
     }
 
     .back-button {
-        background: #333;
-        color: #ccc;
-        border: none;
+        background: rgba(71, 85, 105, 0.8);
+        color: #e2e8f0;
+        border: 2px solid #475569;
         padding: 8px 16px;
         border-radius: 6px;
         cursor: pointer;
         font-family: inherit;
         transition: all 0.3s ease;
+        font-weight: 500;
     }
 
     .back-button:hover {
-        background: #444;
+        background: #64748b;
+        border-color: #64748b;
         transform: translateX(-2px);
     }
 
     .pokedex-button {
-        background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
         color: white;
         border: none;
         padding: 8px 16px;
         border-radius: 6px;
         cursor: pointer;
         font-family: inherit;
-        font-weight: bold;
+        font-weight: 600;
         transition: all 0.3s ease;
         display: flex;
         align-items: center;
         gap: 8px;
+        box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.25);
     }
 
     .pokedex-button:hover {
-        background: linear-gradient(45deg, #45b7d1, #4ecdc4);
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+        box-shadow: 0 6px 20px 0 rgba(37, 99, 235, 0.35);
     }
 
     .current-dataset {
-        color: #4ecdc4;
-        font-weight: bold;
-        background: rgba(78, 205, 196, 0.1);
+        color: #3b82f6;
+        font-weight: 600;
+        background: rgba(59, 130, 246, 0.1);
         padding: 8px 16px;
         border-radius: 6px;
-        border: 1px solid #4ecdc4;
+        border: 1px solid #3b82f6;
+    }
+
+    /* Dark theme */
+    :global(.theme-dark) .arena-header h1 {
+        color: #e2e8f0;
+    }
+
+    :global(.theme-dark) .arena-header p {
+        color: #94a3b8;
+    }
+
+    :global(.theme-dark) .back-button {
+        background: rgba(30, 41, 59, 0.8);
+        color: #f1f5f9;
+        border-color: #334155;
+    }
+
+    :global(.theme-dark) .back-button:hover {
+        background: #1e293b;
+        border-color: #475569;
+    }
+
+    :global(.theme-dark) .current-dataset {
+        color: #60a5fa;
+        background: rgba(59, 130, 246, 0.15);
+        border-color: #60a5fa;
     }
 
     /* Responsive */

@@ -1,10 +1,10 @@
 <!-- @file src/lib/components/pokedex/AlgorithmCard.svelte -->
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
+    import { getAlgorithmSprites } from '$lib/stores/theme';
     import { ALGORITHM_CONFIGS } from '$lib/ml/algorithms';
     import { getMovesByAlgorithm } from '$lib/data/moves';
-    import { getTypeMatchups, ALGORITHM_TYPES } from '$lib/data/type-advantages';
-    import MoveTooltip from './MoveTooltip.svelte';
+    import { getTypeMatchups } from '$lib/data/type-advantages';
 
     export let algorithmName: string;
     export let showBackButton: boolean = true;
@@ -13,8 +13,9 @@
 
     $: config = ALGORITHM_CONFIGS[algorithmName];
     $: moves = getMovesByAlgorithm(algorithmName);
-    $: algorithmType = ALGORITHM_TYPES[algorithmName];
-    $: typeMatchups = getTypeMatchups(algorithmType);
+    $: algorithmType = config?.type; // Use type from ALGORITHM_CONFIGS
+    $: typeMatchups = getTypeMatchups(algorithmType as any);
+    $: algorithmSprites = getAlgorithmSprites(algorithmName);
 
     // Tooltip state
     let showTooltip = false;
@@ -22,15 +23,18 @@
     let tooltipX = 0;
     let tooltipY = 0;
 
-    // Emoji mapping for algorithms
-    const algorithmEmojis: Record<string, string> = {
-        'Random Forest': '🌳',
-        'Neural Network': '🧠',
-        'Support Vector Machine': '⚔️',
-        'Gradient Boosting': '⚡',
-        'Naive Bayes': '🎯',
-        'K-Means Clustering': '🎲'
-    };
+    // Icon mapping for algorithms
+    function getAlgorithmIcon(name: string): string {
+        const iconMap: Record<string, string> = {
+            'Random Forest': '/icons/random-forest.png',
+            'Neural Network': '/icons/neural-network.png',
+            'Support Vector Machine': '/icons/support-vector-machine.png',
+            'Gradient Boosting': '/icons/gradient-boost.png',
+            'Naive Bayes': '/icons/naive-bayes.png',
+            'K-Means Clustering': '/icons/clustering.png'
+        };
+        return iconMap[name] || '/icons/ai.png';
+    }
 
     function handleMoveHover(event: MouseEvent, move: any) {
         const rect = (event.target as HTMLElement).getBoundingClientRect();
@@ -57,17 +61,31 @@
 <div class="algorithm-card">
     {#if showBackButton}
         <button class="back-button" on:click={goBack}>
-            ← Back to Pokedex
+            ← Back to Database
         </button>
     {/if}
 
     <div class="card-header">
         <div class="algorithm-avatar">
-            <div class="avatar-emoji">{algorithmEmojis[algorithmName]}</div>
+            <div class="sprite-container">
+                <img
+                        src={algorithmSprites.front}
+                        alt="{algorithmName} sprite"
+                        class="algorithm-sprite"
+                        on:error={() => console.warn(`Failed to load sprite for ${algorithmName}`)}
+                />
+            </div>
             <div class="algorithm-type type-{algorithmType}">{algorithmType.toUpperCase()}</div>
         </div>
         <div class="algorithm-info">
-            <h2 class="algorithm-name">{config.name}</h2>
+            <div class="name-with-icon">
+                <img
+                        src={getAlgorithmIcon(algorithmName)}
+                        alt="{algorithmName} icon"
+                        class="algorithm-icon"
+                />
+                <h2 class="algorithm-name">{config.name}</h2>
+            </div>
             <div class="algorithm-id">#{String(Object.keys(ALGORITHM_CONFIGS).indexOf(algorithmName) + 1).padStart(3, '0')}</div>
         </div>
     </div>
@@ -83,7 +101,7 @@
                         <span class="stat-value">{config.baseStats.attack}</span>
                     </div>
                     <div class="stat-progress">
-                        <div class="stat-fill" style="width: {config.baseStats.attack}%; background: #ef4444;"></div>
+                        <div class="stat-fill" style="width: {config.baseStats.attack}%; background: #dc2626;"></div>
                     </div>
                 </div>
                 <div class="stat-bar">
@@ -92,7 +110,7 @@
                         <span class="stat-value">{config.baseStats.defense}</span>
                     </div>
                     <div class="stat-progress">
-                        <div class="stat-fill" style="width: {config.baseStats.defense}%; background: #3b82f6;"></div>
+                        <div class="stat-fill" style="width: {config.baseStats.defense}%; background: #2563eb;"></div>
                     </div>
                 </div>
                 <div class="stat-bar">
@@ -101,7 +119,7 @@
                         <span class="stat-value">{config.baseStats.speed}</span>
                     </div>
                     <div class="stat-progress">
-                        <div class="stat-fill" style="width: {config.baseStats.speed}%; background: #22c55e;"></div>
+                        <div class="stat-fill" style="width: {config.baseStats.speed}%; background: #059669;"></div>
                     </div>
                 </div>
                 <div class="stat-bar">
@@ -212,48 +230,77 @@
         <!-- Use in Battle Button -->
         <div class="battle-section">
             <button class="use-battle-button" on:click={useInBattle}>
-                ⚔️ Use {config.name} in Battle!
+                <img src="/icons/battle.png" alt="Battle" class="button-icon" />
+                Use {config.name} in Battle!
             </button>
         </div>
     </div>
 </div>
 
-<!-- Tooltip -->
-<MoveTooltip
-        {tooltipMove}
-        show={showTooltip}
-        x={tooltipX}
-        y={tooltipY}
-        move={tooltipMove}
-/>
+<!-- Simple Tooltip -->
+{#if showTooltip && tooltipMove}
+    <div
+            class="simple-tooltip"
+            style="left: {tooltipX}px; top: {tooltipY}px;"
+            role="tooltip"
+    >
+        <div class="tooltip-header">
+            <div class="move-name">{tooltipMove.name}</div>
+            <div class="move-type type-{tooltipMove.type}">{tooltipMove.type.toUpperCase()}</div>
+        </div>
+
+        <div class="move-description">
+            <p>{tooltipMove.description}</p>
+        </div>
+
+        {#if tooltipMove.educationalNote}
+            <div class="educational-section">
+                <div class="education-header">
+                    <span class="education-icon">🎓</span>
+                    <span>ML Explanation</span>
+                </div>
+                <p class="educational-note">{tooltipMove.educationalNote}</p>
+            </div>
+        {/if}
+
+        <div class="tooltip-arrow"></div>
+    </div>
+{/if}
 
 <style>
     .algorithm-card {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border: 2px solid #4ecdc4;
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+        border: 2px solid #2563eb;
         border-radius: 16px;
         padding: 24px;
         max-width: 800px;
         margin: 0 auto;
-        color: #fff;
+        color: #f1f5f9;
         font-family: 'Courier New', monospace;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
+    }
+
+    :global(.theme-dark) .algorithm-card {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+        border-color: #3b82f6;
     }
 
     .back-button {
-        background: #333;
-        color: #ccc;
-        border: none;
+        background: rgba(71, 85, 105, 0.8);
+        color: #e2e8f0;
+        border: 2px solid #475569;
         padding: 8px 16px;
         border-radius: 6px;
         cursor: pointer;
         font-family: inherit;
         margin-bottom: 20px;
         transition: all 0.3s ease;
+        font-weight: 500;
     }
 
     .back-button:hover {
-        background: #444;
+        background: #64748b;
+        border-color: #64748b;
         transform: translateX(-2px);
     }
 
@@ -263,7 +310,7 @@
         gap: 20px;
         margin-bottom: 30px;
         padding-bottom: 20px;
-        border-bottom: 2px solid #333;
+        border-bottom: 2px solid rgba(148, 163, 184, 0.3);
     }
 
     .algorithm-avatar {
@@ -273,23 +320,30 @@
         gap: 10px;
     }
 
-    .avatar-emoji {
-        font-size: 4rem;
+    .sprite-container {
         width: 100px;
         height: 100px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(78, 205, 196, 0.1);
-        border: 3px solid #4ecdc4;
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.2) 0%, transparent 70%);
+        border: 3px solid #2563eb;
         border-radius: 50%;
+    }
+
+    .algorithm-sprite {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+        image-rendering: pixelated;
+        filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.4));
     }
 
     .algorithm-type {
         padding: 4px 12px;
         border-radius: 16px;
         font-size: 0.8rem;
-        font-weight: bold;
+        font-weight: 600;
         color: #fff;
     }
 
@@ -297,17 +351,31 @@
         flex: 1;
     }
 
+    .name-with-icon {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 8px;
+    }
+
+    .algorithm-icon {
+        width: 40px;
+        height: 40px;
+        filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.5));
+    }
+
     .algorithm-name {
         font-size: 2.2rem;
-        margin: 0 0 8px 0;
-        color: #4ecdc4;
-        text-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+        margin: 0;
+        color: #2563eb;
+        text-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+        font-weight: 600;
     }
 
     .algorithm-id {
         font-size: 1.2rem;
-        color: #999;
-        font-weight: bold;
+        color: #94a3b8;
+        font-weight: 600;
     }
 
     .card-content {
@@ -320,7 +388,7 @@
     .moves-section h3,
     .type-section h3,
     .special-section h3 {
-        color: #f59e0b;
+        color: #3b82f6;
         margin: 0 0 15px 0;
         font-size: 1.3rem;
     }
@@ -345,17 +413,17 @@
     }
 
     .stat-name {
-        color: #ccc;
+        color: #cbd5e1;
     }
 
     .stat-value {
-        color: #fff;
-        font-weight: bold;
+        color: #f1f5f9;
+        font-weight: 600;
     }
 
     .stat-progress {
         height: 8px;
-        background: #333;
+        background: rgba(148, 163, 184, 0.3);
         border-radius: 4px;
         overflow: hidden;
     }
@@ -374,8 +442,8 @@
     }
 
     .move-card {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid #333;
+        background: rgba(148, 163, 184, 0.1);
+        border: 1px solid rgba(148, 163, 184, 0.3);
         border-radius: 8px;
         padding: 12px;
         cursor: pointer;
@@ -384,8 +452,8 @@
     }
 
     .move-card:hover {
-        border-color: #4ecdc4;
-        background: rgba(78, 205, 196, 0.1);
+        border-color: #2563eb;
+        background: rgba(37, 99, 235, 0.15);
         transform: translateY(-2px);
     }
 
@@ -397,8 +465,8 @@
     }
 
     .move-name {
-        font-weight: bold;
-        color: #fff;
+        font-weight: 600;
+        color: #f1f5f9;
         font-size: 0.95rem;
     }
 
@@ -406,7 +474,7 @@
         display: flex;
         gap: 12px;
         font-size: 0.8rem;
-        color: #ccc;
+        color: #cbd5e1;
     }
 
     .move-category {
@@ -418,7 +486,7 @@
 
     .moves-hint {
         text-align: center;
-        color: #999;
+        color: #94a3b8;
         font-style: italic;
         margin-top: 10px;
         font-size: 0.9rem;
@@ -432,7 +500,7 @@
     }
 
     .effectiveness-group {
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(148, 163, 184, 0.05);
         border-radius: 8px;
         padding: 15px;
     }
@@ -447,7 +515,7 @@
     }
 
     .not-effective {
-        color: #ef4444;
+        color: #dc2626;
     }
 
     .effectiveness-item {
@@ -456,7 +524,7 @@
         gap: 10px;
         margin-bottom: 8px;
         padding: 8px;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(148, 163, 184, 0.05);
         border-radius: 6px;
     }
 
@@ -464,19 +532,19 @@
         padding: 2px 8px;
         border-radius: 12px;
         font-size: 0.8rem;
-        font-weight: bold;
+        font-weight: 600;
         min-width: 80px;
         text-align: center;
     }
 
     .advantage-multiplier {
-        font-weight: bold;
-        color: #f59e0b;
+        font-weight: 600;
+        color: #3b82f6;
         min-width: 30px;
     }
 
     .advantage-reason {
-        color: #ccc;
+        color: #cbd5e1;
         font-size: 0.85rem;
         flex: 1;
     }
@@ -490,7 +558,7 @@
 
     .strengths,
     .weaknesses {
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(148, 163, 184, 0.05);
         border-radius: 8px;
         padding: 15px;
     }
@@ -501,7 +569,7 @@
     }
 
     .weaknesses h4 {
-        color: #ef4444;
+        color: #dc2626;
         margin: 0 0 10px 0;
     }
 
@@ -514,14 +582,14 @@
     .strengths li,
     .weaknesses li {
         margin-bottom: 5px;
-        color: #ccc;
+        color: #cbd5e1;
         font-size: 0.9rem;
     }
 
     /* Special move */
     .special-move {
-        background: linear-gradient(45deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1));
-        border: 1px solid #f59e0b;
+        background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(147, 197, 253, 0.1));
+        border: 1px solid #3b82f6;
         border-radius: 8px;
         padding: 20px;
         text-align: center;
@@ -529,14 +597,14 @@
 
     .special-name {
         font-size: 1.5rem;
-        font-weight: bold;
-        color: #fbbf24;
+        font-weight: 600;
+        color: #60a5fa;
         margin-bottom: 10px;
-        text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+        text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
     }
 
     .special-description {
-        color: #ccc;
+        color: #cbd5e1;
         font-style: italic;
     }
 
@@ -546,30 +614,144 @@
     }
 
     .use-battle-button {
-        background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
         color: white;
         border: none;
         padding: 16px 32px;
         border-radius: 12px;
         font-size: 1.2rem;
-        font-weight: bold;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
         font-family: inherit;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: center;
+        margin: 0 auto;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
     }
 
     .use-battle-button:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
     }
 
-    /* Type colors */
-    .type-ensemble { background: #22c55e; }
+    .button-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Simple tooltip styles */
+    .simple-tooltip {
+        position: fixed;
+        z-index: 1000;
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        border: 2px solid #2563eb;
+        border-radius: 12px;
+        padding: 16px;
+        max-width: 320px;
+        box-shadow: 0 8px 32px rgba(37, 99, 235, 0.5);
+        color: #f1f5f9;
+        font-family: 'Courier New', monospace;
+        backdrop-filter: blur(10px);
+        transform: translateX(-50%);
+        animation: tooltipFadeIn 0.2s ease-out;
+    }
+
+    @keyframes tooltipFadeIn {
+        from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+
+    .simple-tooltip .tooltip-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .simple-tooltip .move-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2563eb;
+    }
+
+    .simple-tooltip .move-type {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .simple-tooltip .move-description {
+        margin-bottom: 12px;
+        line-height: 1.4;
+    }
+
+    .simple-tooltip .move-description p {
+        margin: 0;
+        color: #cbd5e1;
+        font-size: 0.95rem;
+    }
+
+    .simple-tooltip .educational-section {
+        background: rgba(37, 99, 235, 0.15);
+        border: 1px solid #2563eb;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 12px;
+    }
+
+    .simple-tooltip .education-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: #2563eb;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .simple-tooltip .education-icon {
+        font-size: 1rem;
+    }
+
+    .simple-tooltip .educational-note {
+        margin: 0;
+        color: #e2e8f0;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .simple-tooltip .tooltip-arrow {
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-top: 8px solid #2563eb;
+    }
+
+    /* Updated type colors to match algorithms.ts */
+    .type-forest { background: #22c55e; }
     .type-neural { background: #3b82f6; }
-    .type-geometric { background: #ef4444; }
-    .type-boosting { background: #f59e0b; }
-    .type-probabilistic { background: #ec4899; }
-    .type-clustering { background: #8b5cf6; }
+    .type-svm { background: #ef4444; }
+    .type-gradient { background: #f59e0b; }
+    .type-bayes { background: #ec4899; }
+    .type-kmeans { background: #8b5cf6; }
 
     /* Responsive */
     @media (max-width: 768px) {
@@ -592,6 +774,15 @@
 
         .algorithm-name {
             font-size: 1.8rem;
+        }
+
+        .name-with-icon {
+            justify-content: center;
+        }
+
+        .simple-tooltip {
+            max-width: 280px;
+            padding: 12px;
         }
     }
 </style>

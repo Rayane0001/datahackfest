@@ -1,8 +1,8 @@
 <!-- @file src/lib/components/pokedex/Pokedex.svelte -->
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
+    import { getAlgorithmSprites } from '$lib/stores/theme';
     import { ALGORITHM_CONFIGS } from '$lib/ml/algorithms';
-    import { ALGORITHM_TYPES } from '$lib/data/type-advantages';
     import AlgorithmCard from './AlgorithmCard.svelte';
 
     const dispatch = createEventDispatcher();
@@ -12,24 +12,28 @@
     let searchTerm = '';
     let selectedTypeFilter = 'all';
 
-    // Algorithm data with emojis and types
-    const algorithms = Object.keys(ALGORITHM_CONFIGS).map(name => ({
-        name,
-        config: ALGORITHM_CONFIGS[name],
-        type: ALGORITHM_TYPES[name],
-        emoji: getAlgorithmEmoji(name),
-        id: Object.keys(ALGORITHM_CONFIGS).indexOf(name) + 1
-    }));
+    // Algorithm data with sprites and icons - using correct type mapping
+    const algorithms = Object.keys(ALGORITHM_CONFIGS).map(name => {
+        const config = ALGORITHM_CONFIGS[name];
+        return {
+            name,
+            config,
+            type: config.type, // Use the type from ALGORITHM_CONFIGS
+            sprite: getAlgorithmSprites(name).front,
+            icon: getAlgorithmIcon(name),
+            id: Object.keys(ALGORITHM_CONFIGS).indexOf(name) + 1
+        };
+    });
 
-    // Type filter options
+    // Type filter options - updated to match the new types
     const typeFilters = [
-        { value: 'all', label: 'All Types', color: '#6b7280' },
-        { value: 'ensemble', label: 'Ensemble', color: '#22c55e' },
+        { value: 'all', label: 'All Types', color: '#64748b' },
+        { value: 'forest', label: 'Forest', color: '#22c55e' },
         { value: 'neural', label: 'Neural', color: '#3b82f6' },
-        { value: 'geometric', label: 'Geometric', color: '#ef4444' },
-        { value: 'boosting', label: 'Boosting', color: '#f59e0b' },
-        { value: 'probabilistic', label: 'Probabilistic', color: '#ec4899' },
-        { value: 'clustering', label: 'Clustering', color: '#8b5cf6' }
+        { value: 'svm', label: 'SVM', color: '#ef4444' },
+        { value: 'gradient', label: 'Gradient', color: '#f59e0b' },
+        { value: 'bayes', label: 'Bayes', color: '#ec4899' },
+        { value: 'kmeans', label: 'K-Means', color: '#8b5cf6' }
     ];
 
     // Filtered algorithms based on search and type
@@ -40,16 +44,16 @@
         return matchesSearch && matchesType;
     });
 
-    function getAlgorithmEmoji(name: string): string {
-        const emojis: Record<string, string> = {
-            'Random Forest': '🌳',
-            'Neural Network': '🧠',
-            'Support Vector Machine': '⚔️',
-            'Gradient Boosting': '⚡',
-            'Naive Bayes': '🎯',
-            'K-Means Clustering': '🎲'
+    function getAlgorithmIcon(name: string): string {
+        const iconMap: Record<string, string> = {
+            'Random Forest': '/icons/random-forest.png',
+            'Neural Network': '/icons/neural-network.png',
+            'Support Vector Machine': '/icons/support-vector-machine.png',
+            'Gradient Boosting': '/icons/gradient-boost.png',
+            'Naive Bayes': '/icons/naive-bayes.png',
+            'K-Means Clustering': '/icons/clustering.png'
         };
-        return emojis[name] || '🤖';
+        return iconMap[name] || '/icons/ai.png';
     }
 
     function selectAlgorithm(algorithmName: string) {
@@ -87,7 +91,10 @@
             <!-- Main Pokedex Grid -->
             <div class="pokedex-header">
                 <div class="header-top">
-                    <h1 class="pokedex-title">🔬 ML Algorithm Pokedex</h1>
+                    <h1 class="pokedex-title">
+                        <img src="/icons/pokedex.png" alt="Pokedex" class="title-icon" />
+                        ML Algorithm Database
+                    </h1>
                     <button class="close-button" on:click={close}>✕</button>
                 </div>
                 <p class="pokedex-subtitle">
@@ -143,12 +150,27 @@
                 {#each filteredAlgorithms as algorithm}
                     <div class="algorithm-entry" on:click={() => selectAlgorithm(algorithm.name)} role="button" tabindex="0">
                         <div class="entry-header">
-                            <div class="algorithm-emoji">{algorithm.emoji}</div>
+                            <div class="sprite-container">
+                                <img
+                                        src={algorithm.sprite}
+                                        alt="{algorithm.name} sprite"
+                                        class="algorithm-sprite"
+                                        on:error={() => console.warn(`Failed to load sprite for ${algorithm.name}`)}
+                                />
+                            </div>
                             <div class="entry-id">#{String(algorithm.id).padStart(3, '0')}</div>
                         </div>
 
                         <div class="entry-info">
-                            <h3 class="entry-name">{algorithm.name}</h3>
+                            <div class="name-with-icon">
+                                <img
+                                        src={algorithm.icon}
+                                        alt="{algorithm.name} icon"
+                                        class="algorithm-icon"
+                                        on:error={() => console.warn(`Failed to load icon for ${algorithm.name}`)}
+                                />
+                                <h3 class="entry-name">{algorithm.name}</h3>
+                            </div>
                             <div class="entry-type type-{algorithm.type}">{algorithm.type}</div>
                         </div>
 
@@ -156,27 +178,37 @@
                             <div class="mini-stat">
                                 <span class="mini-stat-label">ATK</span>
                                 <span class="mini-stat-value">{algorithm.config.baseStats.attack}</span>
+                                <div class="mini-stat-bar">
+                                    <div class="mini-stat-fill" style="width: {algorithm.config.baseStats.attack}%; background: #ef4444;"></div>
+                                </div>
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">DEF</span>
                                 <span class="mini-stat-value">{algorithm.config.baseStats.defense}</span>
+                                <div class="mini-stat-bar">
+                                    <div class="mini-stat-fill" style="width: {algorithm.config.baseStats.defense}%; background: #3b82f6;"></div>
+                                </div>
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">SPD</span>
                                 <span class="mini-stat-value">{algorithm.config.baseStats.speed}</span>
+                                <div class="mini-stat-bar">
+                                    <div class="mini-stat-fill" style="width: {algorithm.config.baseStats.speed}%; background: #22c55e;"></div>
+                                </div>
                             </div>
                         </div>
 
                         <div class="entry-preview">
                             <div class="strength-preview">
-                                <strong>Strength:</strong> {algorithm.config.strengths[0]}
+                                <strong>💪 Strength:</strong> {algorithm.config.strengths[0]}
                             </div>
                             <div class="special-preview">
-                                <strong>Special:</strong> {algorithm.config.special}
+                                <strong>⚡ Special:</strong> {algorithm.config.special}
                             </div>
                         </div>
 
                         <div class="entry-footer">
+                            <img src="/icons/battle.png" alt="Battle" class="footer-icon" />
                             <span class="entry-hint">Click to view details →</span>
                         </div>
                     </div>
@@ -184,7 +216,9 @@
 
                 {#if filteredAlgorithms.length === 0}
                     <div class="no-results">
-                        <div class="no-results-icon">🔍</div>
+                        <div class="no-results-icon">
+                            <img src="/icons/pokedex.png" alt="No results" class="no-results-image" />
+                        </div>
                         <h3>No algorithms found</h3>
                         <p>Try adjusting your search terms or filters</p>
                     </div>
@@ -211,24 +245,29 @@
     }
 
     .pokedex-container {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border: 3px solid #4ecdc4;
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+        border: 3px solid #2563eb;
         border-radius: 20px;
         width: 100%;
         max-width: 1200px;
         max-height: 90vh;
         overflow-y: auto;
         padding: 30px;
-        color: #fff;
+        color: #f1f5f9;
         font-family: 'Courier New', monospace;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 20px 60px rgba(37, 99, 235, 0.5);
+    }
+
+    :global(.theme-dark) .pokedex-container {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+        border-color: #3b82f6;
     }
 
     .pokedex-header {
         text-align: center;
         margin-bottom: 30px;
         padding-bottom: 20px;
-        border-bottom: 2px solid #333;
+        border-bottom: 2px solid rgba(148, 163, 184, 0.3);
     }
 
     .header-top {
@@ -241,15 +280,21 @@
     .pokedex-title {
         font-size: 2.5rem;
         margin: 0;
-        background: linear-gradient(45deg, #4ecdc4, #45b7d1, #f39c12);
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: 0 0 20px rgba(78, 205, 196, 0.3);
+        color: #f1f5f9;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .title-icon {
+        width: 50px;
+        height: 50px;
+        filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.5));
     }
 
     .close-button {
-        background: #ef4444;
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
         color: white;
         border: none;
         width: 40px;
@@ -258,17 +303,22 @@
         font-size: 1.2rem;
         cursor: pointer;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
     }
 
     .close-button:hover {
-        background: #dc2626;
         transform: scale(1.1);
+        box-shadow: 0 6px 18px rgba(220, 38, 38, 0.35);
     }
 
     .pokedex-subtitle {
-        color: #ccc;
+        color: #cbd5e1;
         margin: 0;
         font-size: 1.1rem;
+    }
+
+    :global(.theme-dark) .pokedex-subtitle {
+        color: #94a3b8;
     }
 
     /* Controls */
@@ -292,16 +342,16 @@
         top: 50%;
         transform: translateY(-50%);
         font-size: 1.1rem;
-        color: #999;
+        color: #94a3b8;
     }
 
     .search-input {
         width: 100%;
         padding: 12px 40px 12px 40px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 2px solid #333;
+        background: rgba(148, 163, 184, 0.1);
+        border: 2px solid #64748b;
         border-radius: 25px;
-        color: #fff;
+        color: #f1f5f9;
         font-family: inherit;
         font-size: 1rem;
         transition: all 0.3s ease;
@@ -309,8 +359,14 @@
 
     .search-input:focus {
         outline: none;
-        border-color: #4ecdc4;
-        box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+        border-color: #2563eb;
+        box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+    }
+
+    :global(.theme-dark) .search-input {
+        background: rgba(71, 85, 105, 0.2);
+        border-color: #475569;
+        color: #e2e8f0;
     }
 
     .clear-search {
@@ -320,14 +376,15 @@
         transform: translateY(-50%);
         background: none;
         border: none;
-        color: #999;
+        color: #94a3b8;
         cursor: pointer;
         font-size: 1rem;
         padding: 4px;
+        transition: all 0.3s ease;
     }
 
     .clear-search:hover {
-        color: #fff;
+        color: #f1f5f9;
     }
 
     .type-filters {
@@ -339,25 +396,28 @@
 
     .type-filter {
         padding: 8px 16px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 2px solid var(--filter-color, #333);
+        background: rgba(148, 163, 184, 0.1);
+        border: 2px solid var(--filter-color, #64748b);
         border-radius: 20px;
-        color: #fff;
+        color: #f1f5f9;
         font-family: inherit;
         cursor: pointer;
         transition: all 0.3s ease;
         font-size: 0.9rem;
+        font-weight: 500;
     }
 
     .type-filter:hover {
         background: var(--filter-color);
         transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .type-filter.active {
         background: var(--filter-color);
         color: #fff;
-        font-weight: bold;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     }
 
     /* Results */
@@ -367,18 +427,18 @@
         align-items: center;
         margin-bottom: 20px;
         padding: 10px 0;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     .results-count {
-        color: #ccc;
+        color: #cbd5e1;
         font-size: 0.9rem;
     }
 
     .clear-filters {
         background: none;
-        border: 1px solid #666;
-        color: #ccc;
+        border: 1px solid #64748b;
+        color: #cbd5e1;
         padding: 4px 12px;
         border-radius: 12px;
         cursor: pointer;
@@ -388,8 +448,8 @@
     }
 
     .clear-filters:hover {
-        border-color: #4ecdc4;
-        color: #4ecdc4;
+        border-color: #2563eb;
+        color: #3b82f6;
     }
 
     /* Algorithm Grid */
@@ -400,21 +460,27 @@
     }
 
     .algorithm-entry {
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px solid #333;
+        background: rgba(148, 163, 184, 0.1);
+        border: 2px solid rgba(148, 163, 184, 0.2);
         border-radius: 16px;
         padding: 20px;
         cursor: pointer;
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
+        backdrop-filter: blur(10px);
+    }
+
+    :global(.theme-dark) .algorithm-entry {
+        background: rgba(71, 85, 105, 0.2);
+        border-color: rgba(71, 85, 105, 0.3);
     }
 
     .algorithm-entry:hover {
-        border-color: #4ecdc4;
-        background: rgba(78, 205, 196, 0.1);
+        border-color: #2563eb;
+        background: rgba(37, 99, 235, 0.15);
         transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(78, 205, 196, 0.2);
+        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
     }
 
     .entry-header {
@@ -424,25 +490,53 @@
         margin-bottom: 15px;
     }
 
-    .algorithm-emoji {
-        font-size: 3rem;
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    .sprite-container {
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle, rgba(37, 99, 235, 0.2) 0%, transparent 70%);
+        border-radius: 50%;
+        border: 2px solid #2563eb;
+    }
+
+    .algorithm-sprite {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        image-rendering: pixelated;
+        filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
     }
 
     .entry-id {
         font-size: 1.2rem;
-        color: #999;
-        font-weight: bold;
+        color: #94a3b8;
+        font-weight: 600;
     }
 
     .entry-info {
         margin-bottom: 15px;
     }
 
+    .name-with-icon {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .algorithm-icon {
+        width: 24px;
+        height: 24px;
+        filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.3));
+    }
+
     .entry-name {
         font-size: 1.3rem;
-        margin: 0 0 8px 0;
-        color: #4ecdc4;
+        margin: 0;
+        color: #2563eb;
+        font-weight: 600;
     }
 
     .entry-type {
@@ -450,7 +544,7 @@
         padding: 4px 12px;
         border-radius: 12px;
         font-size: 0.8rem;
-        font-weight: bold;
+        font-weight: 600;
         color: #fff;
         text-transform: uppercase;
     }
@@ -462,22 +556,38 @@
     }
 
     .mini-stat {
+        flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 2px;
+        gap: 4px;
     }
 
     .mini-stat-label {
         font-size: 0.7rem;
-        color: #999;
+        color: #94a3b8;
         text-transform: uppercase;
+        font-weight: 600;
     }
 
     .mini-stat-value {
         font-size: 1.1rem;
-        font-weight: bold;
-        color: #fff;
+        font-weight: 600;
+        color: #f1f5f9;
+    }
+
+    .mini-stat-bar {
+        width: 100%;
+        height: 4px;
+        background: rgba(148, 163, 184, 0.3);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .mini-stat-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.5s ease;
     }
 
     .entry-preview {
@@ -492,17 +602,26 @@
     }
 
     .special-preview {
-        color: #f59e0b;
+        color: #3b82f6;
     }
 
     .entry-footer {
-        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
         padding-top: 10px;
-        border-top: 1px solid #333;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .footer-icon {
+        width: 16px;
+        height: 16px;
+        opacity: 0.7;
     }
 
     .entry-hint {
-        color: #999;
+        color: #94a3b8;
         font-size: 0.8rem;
         font-style: italic;
     }
@@ -512,32 +631,33 @@
         grid-column: 1 / -1;
         text-align: center;
         padding: 60px 20px;
-        color: #666;
+        color: #64748b;
     }
 
-    .no-results-icon {
-        font-size: 4rem;
+    .no-results-image {
+        width: 80px;
+        height: 80px;
+        opacity: 0.3;
         margin-bottom: 20px;
-        opacity: 0.5;
     }
 
     .no-results h3 {
         margin: 0 0 10px 0;
-        color: #999;
+        color: #94a3b8;
     }
 
     .no-results p {
         margin: 0;
-        color: #666;
+        color: #64748b;
     }
 
-    /* Type colors */
-    .type-ensemble { background: #22c55e; }
+    /* Updated type colors to match algorithms.ts */
+    .type-forest { background: #22c55e; }
     .type-neural { background: #3b82f6; }
-    .type-geometric { background: #ef4444; }
-    .type-boosting { background: #f59e0b; }
-    .type-probabilistic { background: #ec4899; }
-    .type-clustering { background: #8b5cf6; }
+    .type-svm { background: #ef4444; }
+    .type-gradient { background: #f59e0b; }
+    .type-bayes { background: #ec4899; }
+    .type-kmeans { background: #8b5cf6; }
 
     /* Responsive */
     @media (max-width: 768px) {
@@ -547,6 +667,11 @@
 
         .pokedex-title {
             font-size: 2rem;
+        }
+
+        .title-icon {
+            width: 40px;
+            height: 40px;
         }
 
         .header-top {
@@ -571,6 +696,16 @@
             flex-direction: column;
             gap: 10px;
         }
+
+        .sprite-container {
+            width: 60px;
+            height: 60px;
+        }
+
+        .algorithm-sprite {
+            width: 45px;
+            height: 45px;
+        }
     }
 
     /* Scrollbar styling */
@@ -579,15 +714,15 @@
     }
 
     .pokedex-container::-webkit-scrollbar-track {
-        background: #1a1a2e;
+        background: rgba(15, 23, 42, 0.5);
     }
 
     .pokedex-container::-webkit-scrollbar-thumb {
-        background: #4ecdc4;
+        background: #2563eb;
         border-radius: 4px;
     }
 
     .pokedex-container::-webkit-scrollbar-thumb:hover {
-        background: #45b7d1;
+        background: #3b82f6;
     }
 </style>

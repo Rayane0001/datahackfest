@@ -91,22 +91,25 @@
             >
                 {#if isAnalyzing}
                     <div class="analyzing">
-                        <div class="pokeball-spinner">🔴</div>
+                        <div class="pokeball-spinner">⚡</div>
                         <h3>Analyzing Dataset...</h3>
-                        <p>Professor Oak is examining your data...</p>
+                        <p>Processing your data for combat analysis...</p>
                         <div class="progress-bar">
                             <div class="progress-fill"></div>
                         </div>
                     </div>
                 {:else}
                     <div class="upload-content">
-                        <div class="upload-icon">📊</div>
-                        <h3>A Wild Dataset Appeared!</h3>
+                        <div class="upload-icon"><img src="/icons/upload-dataset.png" style="height:90px" /></div>
+                        <h3>Upload Dataset</h3>
                         <p>Drop your CSV file here or click to select</p>
                         <button class="upload-button" on:click={() => {
-                            document.getElementById('file-input')?.click()
-                            playAudio('/audio/super_mario.mp3', true);
-                            }}>
+                        playAudio('/audio/button_real.wav');
+                        setTimeout(() => {
+                        playAudio('/audio/super_mario.mp3', true);
+                        document.getElementById('file-input')?.click()
+                        }, 250); // 10ms is usually enough
+                        }}>
                             Choose Dataset
                         </button>
                         <input
@@ -162,13 +165,13 @@
                 </div>
 
                 <div class="dataset-description">
-                    <h4>🎓 Professor Oak's Analysis:</h4>
+                    <h4>📋 Dataset Analysis:</h4>
                     <p>{analysisResult.description}</p>
                 </div>
 
                 {#if analysisResult.challenges?.length > 0}
                     <div class="challenges">
-                        <h4>⚠️ Battle Challenges:</h4>
+                        <h4>⚠️ Challenges:</h4>
                         <ul>
                             {#each analysisResult.challenges as challenge}
                                 <li>{challenge}</li>
@@ -179,7 +182,7 @@
 
                 {#if analysisResult.recommendations?.length > 0}
                     <div class="recommendations">
-                        <h4>💡 Recommended Fighters:</h4>
+                        <h4>💡 Recommended Algorithms:</h4>
                         <div class="recommended-algos">
                             {#each analysisResult.recommendations as rec}
                                 <div class="algo-recommendation">
@@ -207,23 +210,23 @@
     }
 
     .upload-zone {
-        border: 3px dashed #666;
+        border: 3px dashed #64748b;
         border-radius: 15px;
         padding: 40px 20px;
         text-align: center;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(148, 163, 184, 0.1);
         transition: all 0.3s ease;
         cursor: pointer;
     }
 
     .upload-zone.drag-active {
-        border-color: #4ecdc4;
-        background: rgba(78, 205, 196, 0.1);
+        border-color: #2563eb;
+        background: rgba(37, 99, 235, 0.15);
         transform: scale(1.02);
     }
 
     .upload-content h3 {
-        color: #4ecdc4;
+        color: #2563eb;
         margin: 20px 0 10px;
         font-size: 1.5rem;
     }
@@ -234,24 +237,26 @@
     }
 
     .upload-button {
-        background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
         color: white;
         border: none;
         padding: 12px 24px;
         border-radius: 8px;
         font-size: 1.1rem;
-        font-weight: bold;
+        font-weight: 600;
         cursor: pointer;
         margin: 20px 0;
-        transition: transform 0.3s ease;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.25);
     }
 
     .upload-button:hover {
         transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(37, 99, 235, 0.35);
     }
 
     .supported-formats {
-        color: #999;
+        color: #64748b;
         margin-top: 15px;
     }
 
@@ -276,14 +281,14 @@
         width: 100%;
         max-width: 300px;
         height: 8px;
-        background: #333;
+        background: #e2e8f0;
         border-radius: 4px;
         overflow: hidden;
     }
 
     .progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #4ecdc4, #45b7d1);
+        background: linear-gradient(90deg, #2563eb, #1e40af);
         animation: progress 3s ease-in-out infinite;
     }
 
@@ -295,18 +300,18 @@
 
     .error-message {
         background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
+        color: #dc2626;
         padding: 15px;
         border-radius: 8px;
         margin-top: 15px;
-        border: 1px solid #ef4444;
+        border: 1px solid #dc2626;
     }
 
     .dataset-card {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(148, 163, 184, 0.1);
         border-radius: 15px;
         padding: 25px;
-        border: 2px solid #333;
+        border: 2px solid #334155;
     }
 
     .card-header {
@@ -323,9 +328,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(78, 205, 196, 0.2);
+        background: rgba(37, 99, 235, 0.2);
         border-radius: 50%;
-        border: 3px solid #4ecdc4;
+        border: 3px solid #2563eb;
     }
 
     .dataset-info {
@@ -333,33 +338,38 @@
     }
 
     .dataset-name {
-        color: #4ecdc4;
+        color: #2563eb;
         margin: 0 0 5px;
         font-size: 1.3rem;
     }
 
     .dataset-level {
-        color: #f39c12;
-        font-weight: bold;
+        color: #3b82f6;
+        font-weight: 600;
         margin-bottom: 5px;
     }
 
     .dataset-type {
-        color: #999;
+        color: #64748b;
         font-size: 0.9rem;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(148, 163, 184, 0.2);
         padding: 2px 8px;
         border-radius: 4px;
         display: inline-block;
     }
 
     .reset-button {
-        background: #333;
-        color: #ccc;
+        background: #475569;
+        color: #e2e8f0;
         border: none;
         padding: 8px 12px;
         border-radius: 6px;
         cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .reset-button:hover {
+        background: #64748b;
     }
 
     .dataset-stats {
@@ -367,7 +377,7 @@
         gap: 20px;
         margin-bottom: 20px;
         padding: 15px;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(15, 23, 42, 0.3);
         border-radius: 8px;
     }
 
@@ -377,16 +387,16 @@
 
     .stat-label {
         display: block;
-        color: #999;
+        color: #64748b;
         font-size: 0.9rem;
         margin-bottom: 5px;
     }
 
     .stat-value {
         display: block;
-        color: #4ecdc4;
+        color: #2563eb;
         font-size: 1.2rem;
-        font-weight: bold;
+        font-weight: 600;
     }
 
     .dataset-description,
@@ -398,7 +408,7 @@
     .dataset-description h4,
     .challenges h4,
     .recommendations h4 {
-        color: #f39c12;
+        color: #3b82f6;
         margin: 0 0 10px;
     }
 
@@ -409,11 +419,11 @@
 
     .challenges li {
         background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
+        color: #dc2626;
         padding: 8px 12px;
         border-radius: 6px;
         margin-bottom: 5px;
-        border-left: 3px solid #ef4444;
+        border-left: 3px solid #dc2626;
     }
 
     .recommended-algos {
@@ -426,35 +436,93 @@
         background: rgba(34, 197, 94, 0.1);
         padding: 10px;
         border-radius: 6px;
-        border-left: 3px solid #22c55e;
+        border-left: 3px solid #059669;
     }
 
     .algo-name {
-        color: #22c55e;
-        font-weight: bold;
+        color: #059669;
+        font-weight: 600;
         margin-right: 10px;
     }
 
     .reason {
-        color: #ccc;
+        color: #64748b;
         font-size: 0.9rem;
     }
 
     .battle-ready-button {
         width: 100%;
-        background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
         color: white;
         border: none;
         padding: 15px;
         border-radius: 8px;
         font-size: 1.2rem;
-        font-weight: bold;
+        font-weight: 600;
         cursor: pointer;
-        transition: transform 0.3s ease;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.25);
     }
 
     .battle-ready-button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        box-shadow: 0 6px 20px 0 rgba(37, 99, 235, 0.35);
+    }
+
+    /* Dark theme */
+    :global(.theme-dark) .upload-zone {
+        border-color: #475569;
+        background: rgba(71, 85, 105, 0.1);
+        color: #e2e8f0;
+    }
+
+    :global(.theme-dark) .upload-zone.drag-active {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.15);
+    }
+
+    :global(.theme-dark) .upload-content h3 {
+        color: #3b82f6;
+    }
+
+    :global(.theme-dark) .supported-formats {
+        color: #94a3b8;
+    }
+
+    :global(.theme-dark) .dataset-card {
+        background: rgba(71, 85, 105, 0.1);
+        border-color: #475569;
+        color: #e2e8f0;
+    }
+
+    :global(.theme-dark) .dataset-name {
+        color: #3b82f6;
+    }
+
+    :global(.theme-dark) .dataset-level {
+        color: #60a5fa;
+    }
+
+    :global(.theme-dark) .dataset-type {
+        color: #94a3b8;
+        background: rgba(71, 85, 105, 0.3);
+    }
+
+    :global(.theme-dark) .stat-label {
+        color: #94a3b8;
+    }
+
+    :global(.theme-dark) .stat-value {
+        color: #3b82f6;
+    }
+
+    :global(.theme-dark) .dataset-description h4,
+    :global(.theme-dark) .challenges h4,
+    :global(.theme-dark) .recommendations h4 {
+        color: #60a5fa;
+    }
+
+    :global(.theme-dark) .reason {
+        color: #94a3b8;
     }
 </style>

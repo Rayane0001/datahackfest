@@ -23,8 +23,8 @@
     };
 
     const statusColors: Record<string, string> = {
-        overfitting: '#ef4444',
-        underfitting: '#3b82f6',
+        overfitting: '#dc2626',
+        underfitting: '#2563eb',
         'curse-dimensionality': '#8b5cf6',
         'data-leakage': '#991b1b',
         'dropout-defense': '#22c55e',
@@ -41,7 +41,7 @@
     }
 
     function getStatusColor(statusName: string): string {
-        return statusColors[statusName] || '#6b7280';
+        return statusColors[statusName] || '#64748b';
     }
 
     function getStatusTypeClass(type: string): string {
@@ -51,12 +51,16 @@
             default: return 'status-neutral';
         }
     }
+
+    function formatStatusName(name: string): string {
+        return name.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
 </script>
 
 {#if statusEffects.length > 0}
     <div class="status-effects-container">
         <div class="status-header">
-            <span class="status-title">🎯 {fighterName}'s Status</span>
+            <span class="status-title">🎯 {fighterName}'s Status Effects</span>
         </div>
 
         <div class="status-effects-grid">
@@ -72,10 +76,10 @@
 
                     <div class="status-info">
                         <div class="status-name">
-                            {status.name.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {formatStatusName(status.name)}
                         </div>
                         <div class="status-duration">
-                            {status.turnsRemaining} turn{status.turnsRemaining !== 1 ? 's' : ''} left
+                            {status.turnsRemaining} turn{status.turnsRemaining !== 1 ? 's' : ''} remaining
                         </div>
                     </div>
 
@@ -88,7 +92,7 @@
 									a 15.9155 15.9155 0 0 1 0 31.831
 									a 15.9155 15.9155 0 0 1 0 -31.831"
                                         fill="none"
-                                        stroke="rgba(255, 255, 255, 0.1)"
+                                        stroke="rgba(148, 163, 184, 0.2)"
                                         stroke-width="2"
                                 />
                                 <path
@@ -99,7 +103,7 @@
                                         fill="none"
                                         stroke="var(--status-color)"
                                         stroke-width="2"
-                                        stroke-dasharray="{(status.turnsRemaining / 5) * 100}, 100"
+                                        stroke-dasharray="{Math.min(100, (status.turnsRemaining / 5) * 100)}, 100"
                                         stroke-linecap="round"
                                 />
                             </svg>
@@ -122,73 +126,85 @@
 
 <style>
     .status-effects-container {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid #333;
-        border-radius: 10px;
-        padding: 15px;
+        background: rgba(148, 163, 184, 0.1);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 12px;
+        padding: 18px;
         margin: 15px 0;
         font-family: 'Courier New', monospace;
+        backdrop-filter: blur(5px);
+    }
+
+    :global(.theme-dark) .status-effects-container {
+        background: rgba(71, 85, 105, 0.15);
+        border-color: rgba(71, 85, 105, 0.3);
     }
 
     .status-header {
         text-align: center;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #333;
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.3);
     }
 
     .status-title {
-        color: #4ecdc4;
-        font-weight: bold;
-        font-size: 1rem;
+        color: #3b82f6;
+        font-weight: 600;
+        font-size: 1.1rem;
     }
 
     .status-effects-grid {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        margin-bottom: 15px;
+        gap: 12px;
+        margin-bottom: 18px;
     }
 
     .status-effect {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 10px;
-        background: rgba(255, 255, 255, 0.03);
+        gap: 15px;
+        padding: 12px;
+        background: rgba(148, 163, 184, 0.05);
         border: 1px solid var(--status-color);
-        border-radius: 8px;
+        border-radius: 10px;
         transition: all 0.3s ease;
         position: relative;
+        backdrop-filter: blur(3px);
     }
 
     .status-effect:hover {
-        background: rgba(255, 255, 255, 0.08);
-        transform: translateX(2px);
+        background: rgba(148, 163, 184, 0.1);
+        transform: translateX(3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .status-effect.status-positive {
-        background: rgba(34, 197, 94, 0.1);
+        background: rgba(34, 197, 94, 0.12);
+        border-color: #22c55e;
     }
 
     .status-effect.status-negative {
-        background: rgba(239, 68, 68, 0.1);
+        background: rgba(220, 38, 38, 0.12);
+        border-color: #dc2626;
     }
 
     .status-effect.status-neutral {
-        background: rgba(107, 114, 128, 0.1);
+        background: rgba(100, 116, 139, 0.12);
+        border-color: #64748b;
     }
 
     .status-icon {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 40px;
-        background: rgba(255, 255, 255, 0.1);
+        width: 45px;
+        height: 45px;
+        background: rgba(148, 163, 184, 0.1);
         border-radius: 50%;
         border: 2px solid var(--status-color);
+        flex-shrink: 0;
     }
 
     .status-info {
@@ -199,26 +215,27 @@
     }
 
     .status-name {
-        color: #fff;
-        font-weight: bold;
-        font-size: 0.9rem;
+        color: #f1f5f9;
+        font-weight: 600;
+        font-size: 0.95rem;
     }
 
     .status-duration {
-        color: #ccc;
-        font-size: 0.8rem;
+        color: #cbd5e1;
+        font-size: 0.85rem;
     }
 
     .status-timer {
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-shrink: 0;
     }
 
     .timer-circle {
         position: relative;
-        width: 30px;
-        height: 30px;
+        width: 35px;
+        height: 35px;
     }
 
     .timer-svg {
@@ -237,66 +254,121 @@
         left: 50%;
         transform: translate(-50%, -50%);
         color: var(--status-color);
-        font-size: 0.7rem;
-        font-weight: bold;
+        font-size: 0.8rem;
+        font-weight: 600;
     }
 
     .status-education {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 10px;
-        background: rgba(78, 205, 196, 0.1);
-        border: 1px solid #4ecdc4;
-        border-radius: 6px;
-        margin-top: 10px;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(37, 99, 235, 0.1);
+        border: 1px solid #2563eb;
+        border-radius: 8px;
+        margin-top: 12px;
     }
 
     .education-icon {
-        font-size: 1.2rem;
-        color: #4ecdc4;
+        font-size: 1.3rem;
+        color: #3b82f6;
+        flex-shrink: 0;
     }
 
     .education-text {
-        color: #e5e7eb;
-        font-size: 0.85rem;
-        line-height: 1.4;
+        color: #e2e8f0;
+        font-size: 0.9rem;
+        line-height: 1.5;
     }
 
     /* Animations for different status types */
     .status-effect.status-negative .status-icon {
-        animation: shake 2s ease-in-out infinite;
+        animation: shake 2.5s ease-in-out infinite;
     }
 
     .status-effect.status-positive .status-icon {
-        animation: glow 2s ease-in-out infinite;
+        animation: glow 2.5s ease-in-out infinite;
+    }
+
+    .status-effect.status-neutral .status-icon {
+        animation: pulse 3s ease-in-out infinite;
     }
 
     @keyframes shake {
         0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-2px); }
-        75% { transform: translateX(2px); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+        20%, 40%, 60%, 80% { transform: translateX(2px); }
     }
 
     @keyframes glow {
         0%, 100% {
-            box-shadow: 0 0 5px var(--status-color);
+            box-shadow: 0 0 8px var(--status-color);
             transform: scale(1);
         }
         50% {
-            box-shadow: 0 0 15px var(--status-color);
+            box-shadow: 0 0 20px var(--status-color);
             transform: scale(1.05);
+        }
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.8;
+            transform: scale(0.98);
         }
     }
 
     /* Responsive */
     @media (max-width: 768px) {
         .status-effects-container {
+            padding: 15px;
+            margin: 12px 0;
+        }
+
+        .status-effect {
+            gap: 12px;
+            padding: 10px;
+        }
+
+        .status-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.4rem;
+        }
+
+        .timer-circle {
+            width: 30px;
+            height: 30px;
+        }
+
+        .timer-number {
+            font-size: 0.75rem;
+        }
+
+        .education-text {
+            font-size: 0.85rem;
+        }
+
+        .status-name {
+            font-size: 0.9rem;
+        }
+
+        .status-duration {
+            font-size: 0.8rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .status-effects-container {
             padding: 12px;
         }
 
         .status-effect {
-            gap: 8px;
+            gap: 10px;
             padding: 8px;
         }
 
@@ -307,8 +379,16 @@
         }
 
         .timer-circle {
-            width: 25px;
-            height: 25px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .status-name {
+            font-size: 0.85rem;
+        }
+
+        .status-duration {
+            font-size: 0.75rem;
         }
 
         .education-text {

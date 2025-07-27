@@ -1,9 +1,9 @@
+<!-- @file src/lib/components/combat/MoveSelection.svelte -->
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
     import type { Move } from '$lib/data/moves';
     import type { Fighter } from '$lib/ml/algorithms';
     import { getTypeMultiplier, ALGORITHM_TYPES } from '$lib/data/type-advantages';
-    import { playAudio } from '$lib/stores/audioPlayer';
 
     export let playerFighter: Fighter;
     export let opponentFighter: Fighter;
@@ -15,9 +15,7 @@
     const dispatch = createEventDispatcher();
 
     let showTooltip = false;
-    let tooltipMove: Move | null = null;
-    let tooltipX = 0;
-    let tooltipY = 0;
+    let currentMove: Move | null = null;
 
     function getEffectivenessInfo(move: Move) {
         const playerType = ALGORITHM_TYPES[playerFighter.name];
@@ -38,20 +36,25 @@
             return;
         }
 
+        showTooltip = false;
+        currentMove = null;
         dispatch('move-selected', { move });
     }
 
-    function handleMoveHover(event: MouseEvent, move: Move) {
-        const rect = (event.target as HTMLElement).getBoundingClientRect();
-        tooltipMove = move;
-        tooltipX = rect.left + rect.width / 2;
-        tooltipY = rect.top - 10;
-        showTooltip = true;
+    function handleTooltipClick(event: MouseEvent, move: Move) {
+        event.stopPropagation();
+
+        if (showTooltip && currentMove === move) {
+            closeTooltip();
+        } else {
+            currentMove = move;
+            showTooltip = true;
+        }
     }
 
-    function handleMoveLeave() {
+    function closeTooltip() {
         showTooltip = false;
-        tooltipMove = null;
+        currentMove = null;
     }
 
     function getPPStatus(move: Move): { class: string; text: string } {
@@ -64,7 +67,15 @@
         if (ratio < 0.5) return { class: 'pp-medium', text: `${pp}/${maxPP}` };
         return { class: 'pp-full', text: `${pp}/${maxPP}` };
     }
+
+    function handleDocumentClick() {
+        if (showTooltip) {
+            closeTooltip();
+        }
+    }
 </script>
+
+<svelte:document on:click={handleDocumentClick} />
 
 <div class="move-selection" class:disabled>
     <div class="selection-header">
@@ -72,7 +83,7 @@
             {#if isPlayerTurn}
                 🎯 Choose your move!
             {:else}
-                ⏳ Opponent is thinking...
+                ⏳ AI is strategizing...
             {/if}
         </h3>
 
@@ -100,12 +111,7 @@
                     class:no-pp={ppCounters[move.name] <= 0}
                     class:disabled={!canUse}
                     disabled={!canUse}
-                    on:click={() => {
-                        handleMoveSelect(move)
-                        playAudio(`/audio/button.mp3`)
-                        }}
-                    on:mouseenter={(e) => handleMoveHover(e, move)}
-                    on:mouseleave={handleMoveLeave}
+                    on:click={() => handleMoveSelect(move)}
             >
                 <div class="move-header">
                     <div class="move-name">{move.name}</div>
@@ -138,6 +144,17 @@
                         <span class="pp-label">PP</span>
                         <span class="pp-value {ppStatus.class}">{ppStatus.text}</span>
                     </div>
+
+                    <span
+                            class="move-tooltip-icon"
+                            class:disabled={!canUse || disabled}
+                            on:click={(e) => {
+                                if (!canUse || disabled) return;
+                                handleTooltipClick(e, move);
+                            }}
+                    >
+                        ❓
+                    </span>
                 </div>
 
                 {#if isPlayerTurn && canUse}
@@ -159,64 +176,62 @@
         {#if isPlayerTurn}
             <div class="turn-info">
                 <span class="tip-icon">💡</span>
-                <span class="tip-text">Hover over moves for detailed ML explanations!</span>
+                <span class="tip-text">Click ❓ on moves for detailed ML explanations!</span>
             </div>
         {/if}
     </div>
 </div>
 
-{#if showTooltip && tooltipMove}
-    <div
-            class="move-tooltip"
-            style="left: {tooltipX}px; top: {tooltipY}px;"
-            role="tooltip"
-    >
-        <div class="tooltip-header">
-            <div class="move-name">{tooltipMove.name}</div>
-            <div class="move-type type-{tooltipMove.type}">{tooltipMove.type.toUpperCase()}</div>
+{#if showTooltip && currentMove}
+    <div class="tooltip-overlay" on:click={closeTooltip}>
+        <div class="move-tooltip" on:click={(e) => e.stopPropagation()}>
+            <button class="tooltip-close" on:click={closeTooltip}>✖</button>
+
+            <div class="tooltip-header">
+                <div class="move-name">{currentMove.name}</div>
+                <div class="move-type type-{currentMove.type}">{currentMove.type.toUpperCase()}</div>
+            </div>
+
+            <div class="move-stats">
+                <div class="stat">
+                    <span class="stat-label">Power</span>
+                    <span class="stat-value">{currentMove.power || '—'}</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Accuracy</span>
+                    <span class="stat-value">{currentMove.accuracy}%</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">PP</span>
+                    <span class="stat-value">{currentMove.pp}</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Category</span>
+                    <span class="stat-value">
+                        {currentMove.category === 'physical' ? '💪' : currentMove.category === 'special' ? '✨' : '🛡️'}
+                        {currentMove.category.toUpperCase()}
+                    </span>
+                </div>
+            </div>
+
+            <div class="move-description">
+                <p>{currentMove.description}</p>
+            </div>
+
+            {#if currentMove.effect}
+                <div class="move-effect">
+                    <strong>Effect:</strong> {currentMove.effect}
+                </div>
+            {/if}
+
+            <div class="educational-section">
+                <div class="education-header">
+                    <span class="education-icon">🎓</span>
+                    <span>Machine Learning Explanation</span>
+                </div>
+                <p class="educational-note">{currentMove.educationalNote}</p>
+            </div>
         </div>
-
-        <div class="move-stats">
-            <div class="stat">
-                <span class="stat-label">Power</span>
-                <span class="stat-value">{tooltipMove.power || '—'}</span>
-            </div>
-            <div class="stat">
-                <span class="stat-label">Accuracy</span>
-                <span class="stat-value">{tooltipMove.accuracy}%</span>
-            </div>
-            <div class="stat">
-                <span class="stat-label">PP</span>
-                <span class="stat-value">{tooltipMove.pp}</span>
-            </div>
-            <div class="stat">
-                <span class="stat-label">Category</span>
-                <span class="stat-value">
-                    {tooltipMove.category === 'physical' ? '💪' : tooltipMove.category === 'special' ? '✨' : '🛡️'}
-                    {tooltipMove.category.toUpperCase()}
-                </span>
-            </div>
-        </div>
-
-        <div class="move-description">
-            <p>{tooltipMove.description}</p>
-        </div>
-
-        {#if tooltipMove.effect}
-            <div class="move-effect">
-                <strong>Effect:</strong> {tooltipMove.effect}
-            </div>
-        {/if}
-
-        <div class="educational-section">
-            <div class="education-header">
-                <span class="education-icon">🎓</span>
-                <span>Machine Learning Explanation</span>
-            </div>
-            <p class="educational-note">{tooltipMove.educationalNote}</p>
-        </div>
-
-        <div class="tooltip-arrow"></div>
     </div>
 {/if}
 
@@ -226,13 +241,18 @@
         bottom: 0;
         left: 0;
         right: 0;
-        background: rgba(0, 0, 0, 0.95);
-        border-top: 3px solid #4ecdc4;
-        padding: 12px 15px 15px;
+        background: linear-gradient(180deg, rgba(30, 58, 138, 0.95) 0%, rgba(30, 64, 175, 0.98) 100%);
+        border-top: 3px solid #2563eb;
+        padding: 4px;
         transition: all 0.3s ease;
         z-index: 20;
-        height: 280px;
-        overflow: visible;
+        min-height: 100px;
+        backdrop-filter: blur(10px);
+    }
+
+    :global(.theme-dark) .move-selection {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.98) 100%);
+        border-top-color: #3b82f6;
     }
 
     .move-selection.disabled {
@@ -242,23 +262,24 @@
 
     .selection-header {
         text-align: center;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #333;
+        margin-bottom: 4px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.3);
     }
 
     .selection-header h3 {
-        margin: 0 0 8px 0;
-        color: #4ecdc4;
-        font-size: 1.2rem;
+        margin: 0;
+        color: #f1f5f9;
+        font-size: 0.9rem;
+        font-weight: 600;
     }
 
     .ai-thinking {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        color: #999;
+        gap: 12px;
+        color: #cbd5e1;
     }
 
     .thinking-dots {
@@ -269,7 +290,7 @@
     .thinking-dots span {
         width: 8px;
         height: 8px;
-        background: #4ecdc4;
+        background: #3b82f6;
         border-radius: 50%;
         animation: thinking 1.4s ease-in-out infinite both;
     }
@@ -290,44 +311,45 @@
     }
 
     .thinking-text {
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         font-style: italic;
     }
 
     .moves-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-        margin-bottom: 15px;
+        gap: 4px;
+        margin-bottom: 4px;
     }
 
     .move-button {
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px solid #333;
-        border-radius: 8px;
-        padding: 8px;
-        color: #fff;
+        background: rgba(148, 163, 184, 0.15);
+        border: 2px solid rgba(148, 163, 184, 0.3);
+        border-radius: 6px;
+        padding: 4px 3px 6px;
+        color: #f1f5f9;
         font-family: inherit;
         cursor: pointer;
         transition: all 0.3s ease;
         position: relative;
         text-align: left;
-        height: 85px;
+        min-height: 45px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        backdrop-filter: blur(5px);
     }
 
     .move-button.can-use:hover {
-        border-color: #4ecdc4;
-        background: rgba(78, 205, 196, 0.1);
+        border-color: #2563eb;
+        background: rgba(37, 99, 235, 0.2);
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(78, 205, 196, 0.2);
+        box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
     }
 
     .move-button.no-pp {
-        border-color: #666;
-        background: rgba(255, 255, 255, 0.02);
+        border-color: #64748b;
+        background: rgba(71, 85, 105, 0.1);
         opacity: 0.6;
     }
 
@@ -344,19 +366,19 @@
     }
 
     .move-name {
-        font-weight: bold;
+        font-weight: 600;
         font-size: 0.85rem;
-        color: #fff;
-        line-height: 1.1;
+        color: #f1f5f9;
+        line-height: 1.2;
         flex: 1;
         margin-right: 6px;
     }
 
     .move-type {
-        padding: 1px 5px;
-        border-radius: 8px;
-        font-size: 0.6rem;
-        font-weight: bold;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 0.65rem;
+        font-weight: 600;
         color: #fff;
         text-transform: uppercase;
         white-space: nowrap;
@@ -376,27 +398,29 @@
     }
 
     .stat-label {
-        font-size: 0.6rem;
-        color: #999;
+        font-size: 0.65rem;
+        color: #94a3b8;
         text-transform: uppercase;
+        font-weight: 600;
     }
 
     .stat-value {
         font-size: 0.75rem;
-        font-weight: bold;
-        color: #fff;
+        font-weight: 600;
+        color: #f1f5f9;
     }
 
     .move-bottom {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        margin-bottom: 15px;
     }
 
     .move-category {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 3px;
     }
 
     .category-icon {
@@ -405,7 +429,7 @@
 
     .category-text {
         font-size: 0.7rem;
-        color: #ccc;
+        color: #cbd5e1;
         text-transform: capitalize;
     }
 
@@ -418,18 +442,19 @@
 
     .pp-label {
         font-size: 0.65rem;
-        color: #999;
+        color: #94a3b8;
         text-transform: uppercase;
+        font-weight: 600;
     }
 
     .pp-value {
         font-size: 0.75rem;
-        font-weight: bold;
+        font-weight: 600;
     }
 
     .pp-value.pp-empty {
-        color: #ef4444;
-        font-weight: bold;
+        color: #dc2626;
+        font-weight: 700;
     }
 
     .pp-value.pp-low {
@@ -444,14 +469,46 @@
         color: #22c55e;
     }
 
+    .move-tooltip-icon {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        margin-left: 3px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        padding: 3px;
+        border-radius: 50%;
+        color: #cbd5e1;
+        display: inline-block;
+        user-select: none;
+        background: rgba(37, 99, 235, 0.1);
+        border: 1px solid rgba(37, 99, 235, 0.3);
+    }
+
+    .move-tooltip-icon:hover {
+        opacity: 1;
+        transform: scale(1.1);
+        background: rgba(37, 99, 235, 0.2);
+        color: #3b82f6;
+        border-color: #3b82f6;
+    }
+
+    .move-tooltip-icon.disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        pointer-events: none;
+        background: rgba(71, 85, 105, 0.1);
+        border-color: #64748b;
+    }
+
     .effectiveness-indicator {
         position: absolute;
-        bottom: 6px;
+        bottom: 4px;
         right: 6px;
-        padding: 2px 5px;
+        padding: 2px 6px;
         border-radius: 3px;
-        font-size: 0.6rem;
-        font-weight: bold;
+        font-size: 0.65rem;
+        font-weight: 600;
+        z-index: 5;
     }
 
     .effectiveness-indicator.super-effective {
@@ -460,12 +517,12 @@
     }
 
     .effectiveness-indicator.not-effective {
-        background: #ef4444;
+        background: #dc2626;
         color: #fff;
     }
 
     .effectiveness-indicator.normal {
-        background: #6b7280;
+        background: #64748b;
         color: #fff;
     }
 
@@ -474,28 +531,28 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: rgba(239, 68, 68, 0.9);
+        background: rgba(220, 38, 38, 0.9);
         color: #fff;
         padding: 4px 8px;
         border-radius: 4px;
         font-size: 0.7rem;
-        font-weight: bold;
+        font-weight: 600;
         z-index: 10;
     }
 
     .selection-footer {
         text-align: center;
-        padding-top: 10px;
-        border-top: 1px solid #333;
+        padding-top: 4px;
+        border-top: 1px solid rgba(148, 163, 184, 0.3);
     }
 
     .turn-info {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        color: #999;
-        font-size: 0.8rem;
+        gap: 3px;
+        color: #cbd5e1;
+        font-size: 0.75rem;
     }
 
     .tip-icon {
@@ -506,108 +563,145 @@
         font-style: italic;
     }
 
-    .move-tooltip {
+    .tooltip-overlay {
         position: fixed;
-        z-index: 1000;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border: 2px solid #4ecdc4;
-        border-radius: 12px;
-        padding: 16px;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .move-tooltip {
+        position: relative;
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%);
+        border: 2px solid #2563eb;
+        border-radius: 8px;
+        padding: 12px;
         max-width: 320px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
-        color: #fff;
+        width: 80vw;
+        max-height: 50vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 30px rgba(37, 99, 235, 0.4);
+        color: #f1f5f9;
         font-family: 'Courier New', monospace;
         backdrop-filter: blur(10px);
-        transform: translateX(-50%);
-        animation: tooltipFadeIn 0.2s ease-out;
+        animation: tooltipFadeIn 0.3s ease-out;
+    }
+
+    :global(.theme-dark) .move-tooltip {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+        border-color: #3b82f6;
     }
 
     @keyframes tooltipFadeIn {
-        from {
-            opacity: 0;
-            transform: translateX(-50%) translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
     }
 
-    .move-tooltip .tooltip-header {
+    .tooltip-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(220, 38, 38, 0.8);
+        border: none;
+        color: #fff;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+    .tooltip-close:hover {
+        background: #dc2626;
+        transform: scale(1.1);
+    }
+
+    .tooltip-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         padding-bottom: 8px;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.3);
     }
 
     .move-tooltip .move-name {
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: #4ecdc4;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #3b82f6;
     }
 
     .move-tooltip .move-type {
-        padding: 4px 8px;
+        padding: 3px 8px;
         border-radius: 4px;
-        font-size: 0.8rem;
-        font-weight: bold;
+        font-size: 0.75rem;
+        font-weight: 600;
         color: #fff;
     }
 
     .move-tooltip .move-stats {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: 6px;
+        margin-bottom: 10px;
     }
 
     .move-tooltip .stat {
         display: flex;
         justify-content: space-between;
-        padding: 4px 8px;
-        background: rgba(255, 255, 255, 0.05);
+        padding: 6px 8px;
+        background: rgba(148, 163, 184, 0.1);
         border-radius: 4px;
-        font-size: 0.9rem;
+        font-size: 0.8rem;
     }
 
     .move-tooltip .stat-label {
-        color: #999;
+        color: #94a3b8;
     }
 
     .move-tooltip .stat-value {
-        color: #fff;
-        font-weight: bold;
+        color: #f1f5f9;
+        font-weight: 600;
     }
 
     .move-description {
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         line-height: 1.4;
     }
 
     .move-description p {
         margin: 0;
-        color: #ccc;
-        font-size: 0.95rem;
+        color: #cbd5e1;
+        font-size: 0.85rem;
     }
 
     .move-effect {
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         padding: 8px;
-        background: rgba(245, 158, 11, 0.1);
+        background: rgba(245, 158, 11, 0.15);
         border-left: 3px solid #f59e0b;
         border-radius: 4px;
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         color: #fbbf24;
     }
 
     .educational-section {
-        background: rgba(78, 205, 196, 0.1);
-        border: 1px solid #4ecdc4;
-        border-radius: 8px;
-        padding: 12px;
-        margin-top: 12px;
+        background: rgba(37, 99, 235, 0.15);
+        border: 1px solid #2563eb;
+        border-radius: 6px;
+        padding: 10px;
+        margin-top: 10px;
     }
 
     .education-header {
@@ -615,8 +709,8 @@
         align-items: center;
         gap: 8px;
         margin-bottom: 8px;
-        color: #4ecdc4;
-        font-weight: bold;
+        color: #3b82f6;
+        font-weight: 600;
         font-size: 0.9rem;
     }
 
@@ -626,85 +720,80 @@
 
     .educational-note {
         margin: 0;
-        color: #e5e7eb;
-        font-size: 0.9rem;
+        color: #e2e8f0;
+        font-size: 0.8rem;
         line-height: 1.4;
     }
 
-    .tooltip-arrow {
-        position: absolute;
-        bottom: -8px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 0;
-        height: 0;
-        border-left: 8px solid transparent;
-        border-right: 8px solid transparent;
-        border-top: 8px solid #4ecdc4;
+    .type-ensemble { background: #2563eb; }
+    .type-neural { background: #1e40af; }
+    .type-geometric { background: #1d4ed8; }
+    .type-boosting { background: #3b82f6; }
+    .type-probabilistic { background: #60a5fa; }
+    .type-clustering { background: #93c5fd; }
+
+    .move-tooltip::-webkit-scrollbar {
+        width: 6px;
     }
 
-    .type-ensemble { background: #22c55e; }
-    .type-neural { background: #3b82f6; }
-    .type-geometric { background: #ef4444; }
-    .type-boosting { background: #f59e0b; }
-    .type-probabilistic { background: #ec4899; }
-    .type-clustering { background: #8b5cf6; }
+    .move-tooltip::-webkit-scrollbar-track {
+        background: rgba(148, 163, 184, 0.1);
+        border-radius: 3px;
+    }
 
-    .move-tooltip .type-ensemble { background: #22c55e; }
-    .move-tooltip .type-neural { background: #3b82f6; }
-    .move-tooltip .type-geometric { background: #ef4444; }
-    .move-tooltip .type-boosting { background: #f59e0b; }
-    .move-tooltip .type-probabilistic { background: #ec4899; }
-    .move-tooltip .type-clustering { background: #8b5cf6; }
+    .move-tooltip::-webkit-scrollbar-thumb {
+        background: #2563eb;
+        border-radius: 3px;
+    }
+
+    .move-tooltip::-webkit-scrollbar-thumb:hover {
+        background: #3b82f6;
+    }
 
     @media (max-width: 768px) {
         .move-selection {
-            padding: 12px 15px 15px;
-            max-height: 40vh;
+            min-height: 160px;
+            padding: 6px;
         }
 
         .moves-grid {
             grid-template-columns: 1fr;
-            gap: 10px;
+            gap: 6px;
+            margin-bottom: 6px;
         }
 
         .move-button {
-            height: 90px;
-            padding: 10px;
-        }
-
-        .selection-header h3 {
-            font-size: 1.1rem;
-        }
-
-        .move-name {
-            font-size: 0.9rem;
-        }
-
-        .thinking-text {
-            font-size: 0.8rem;
+            min-height: 70px;
+            padding: 6px 4px 8px;
         }
 
         .move-tooltip {
-            max-width: 280px;
-            padding: 12px;
+            max-width: 95vw;
+            padding: 10px;
         }
 
         .move-tooltip .move-stats {
             grid-template-columns: 1fr;
             gap: 4px;
         }
-
-        .move-tooltip .tooltip-header {
-            flex-direction: column;
-            gap: 8px;
-            text-align: center;
-        }
     }
 
-    @media (max-height: 600px) {
+    @media (max-width: 480px) {
         .move-selection {
-            max-height: 50vh;
+            padding: 4px;
+        }
+
+        .move-button {
+            min-height: 65px;
+            padding: 4px 3px 6px;
+        }
+
+        .move-name {
+            font-size: 0.8rem;
+        }
+
+        .move-tooltip {
+            padding: 8px;
         }
     }
 </style>

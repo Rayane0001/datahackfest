@@ -16,7 +16,7 @@
 
 <div class="dataset-phase">
     <div class="phase-header">
-        <h1>🥊 Predictive Combat Arena</h1>
+        <h1><img src="icons/battle.png" style="height:60px" /> Predictive Combat Arena</h1>
         <p>Upload your dataset to begin the ultimate ML battle!</p>
     </div>
 
@@ -31,6 +31,10 @@
         max-width: 800px;
         margin: 0 auto;
         padding: 20px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
     .phase-header {
@@ -41,15 +45,22 @@
     .phase-header h1 {
         font-size: 2.5rem;
         margin: 0 0 20px 0;
-        background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #f1f5f9;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
 
     .phase-header p {
-        color: #ccc;
+        color: #cbd5e1;
         font-size: 1.1rem;
         margin: 0;
+    }
+
+    /* Dark theme */
+    :global(.theme-dark) .phase-header h1 {
+        color: #e2e8f0;
+    }
+
+    :global(.theme-dark) .phase-header p {
+        color: #94a3b8;
     }
 </style>

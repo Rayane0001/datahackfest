@@ -28,17 +28,19 @@ export interface CombatState {
 export class CombatAI {
     private level: AILevel;
     private personality: string;
+    private decisionHistory: string[] = [];
 
     constructor(level: AILevel = 'normal') {
         this.level = level;
         this.personality = this.generatePersonality();
+        this.decisionHistory = [];
     }
 
     private generatePersonality(): string {
         const personalities = {
-            easy: "A rookie trainer still learning the basics of ML combat",
-            normal: "An experienced data scientist with solid tactical knowledge",
-            hard: "A legendary ML expert who anticipates every move with mathematical precision"
+            easy: "A rookie data scientist learning the fundamentals of ML algorithms",
+            normal: "An experienced practitioner with solid understanding of algorithmic trade-offs",
+            hard: "A legendary ML expert who calculates optimal strategies with mathematical precision"
         };
         return personalities[this.level];
     }
@@ -48,26 +50,36 @@ export class CombatAI {
     }
 
     selectMove(state: CombatState): AIDecision {
+        // Safety check - ensure we have valid state
+        if (!state.aiFighter || !state.playerFighter) {
+            console.warn('Invalid combat state - missing fighters');
+            return this.getDefaultMove(state);
+        }
+
         const availableMoves = this.getAvailableMoves(state);
 
         if (availableMoves.length === 0) {
-            // Should not happen, but fallback
-            return {
-                move: state.aiMoves[0],
-                reasoning: "No moves available - using default move",
-                confidence: 0
-            };
+            console.warn('No available moves - using fallback');
+            return this.getDefaultMove(state);
         }
 
-        switch (this.level) {
-            case 'easy':
-                return this.selectEasyMove(state, availableMoves);
-            case 'normal':
-                return this.selectNormalMove(state, availableMoves);
-            case 'hard':
-                return this.selectHardMove(state, availableMoves);
-            default:
-                return this.selectNormalMove(state, availableMoves);
+        // Record decision attempt
+        this.decisionHistory.push(`Turn ${state.turn}: Analyzing ${availableMoves.length} available moves`);
+
+        try {
+            switch (this.level) {
+                case 'easy':
+                    return this.selectEasyMove(state, availableMoves);
+                case 'normal':
+                    return this.selectNormalMove(state, availableMoves);
+                case 'hard':
+                    return this.selectHardMove(state, availableMoves);
+                default:
+                    return this.selectNormalMove(state, availableMoves);
+            }
+        } catch (error) {
+            console.error('Error in AI move selection:', error);
+            return this.getDefaultMove(state, availableMoves);
         }
     }
 
@@ -78,29 +90,55 @@ export class CombatAI {
         });
     }
 
+    private getDefaultMove(state: CombatState, availableMoves?: Move[]): AIDecision {
+        const moves = availableMoves || state.aiMoves;
+        const fallbackMove = moves.length > 0 ? moves[0] : {
+            name: 'Basic Attack',
+            power: 40,
+            accuracy: 100,
+            pp: 10,
+            type: 'neural',
+            category: 'physical',
+            description: 'A simple attack',
+            educationalNote: 'Basic algorithmic operation'
+        } as Move;
+
+        return {
+            move: fallbackMove,
+            reasoning: "Using safe fallback strategy due to system constraints",
+            confidence: 0.3
+        };
+    }
+
     private selectEasyMove(state: CombatState, availableMoves: Move[]): AIDecision {
-        // Easy AI: Random move selection with basic preferences
-        const randomMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+        // Easy AI: Mostly random with slight preferences for higher power
+        const weightedMoves = availableMoves.map(move => ({
+            move,
+            weight: Math.random() + (move.power ? move.power / 200 : 0)
+        }));
+
+        weightedMoves.sort((a, b) => b.weight - a.weight);
+        const selectedMove = weightedMoves[0].move;
 
         const reasonings = [
-            "I'll try this move - it looks interesting!",
-            "Random strategy is sometimes the best strategy!",
-            "Let's see what this algorithm can do!",
-            "Going with my gut feeling on this one!",
-            "Time to experiment with different approaches!"
+            "This move looks promising!",
+            "Let me try this algorithm approach!",
+            "Going with intuition on this one!",
+            "This seems like a good choice!",
+            "Experimenting with different strategies!"
         ];
 
         return {
-            move: randomMove,
+            move: selectedMove,
             reasoning: reasonings[Math.floor(Math.random() * reasonings.length)],
             confidence: Math.random() * 0.4 + 0.1 // 10-50% confidence
         };
     }
 
     private selectNormalMove(state: CombatState, availableMoves: Move[]): AIDecision {
-        // Normal AI: Consider type advantages, move power, and basic strategy
+        // Normal AI: Strategic thinking with type advantages and health management
         let bestMove = availableMoves[0];
-        let bestScore = 0;
+        let bestScore = -1;
         let reasoning = "";
 
         for (const move of availableMoves) {
@@ -108,50 +146,57 @@ export class CombatAI {
             let moveReasoning = "";
 
             // Base power consideration
-            score += (move.power || 0) * 0.3;
+            const movePower = move.power || 0;
+            score += movePower * 0.4;
 
-            // Type advantage
+            // Type advantage calculation
             const aiType = ALGORITHM_TYPES[state.aiFighter.name];
             const playerType = ALGORITHM_TYPES[state.playerFighter.name];
             const typeMultiplier = getTypeMultiplier(aiType, playerType);
 
             if (typeMultiplier > 1.0) {
-                score += 30;
-                moveReasoning = `${move.name} is super effective against ${playerType} algorithms!`;
+                score += 35;
+                moveReasoning = `${move.name} exploits type advantage against ${playerType} algorithms!`;
             } else if (typeMultiplier < 1.0) {
-                score -= 15;
-                moveReasoning = `${move.name} might not be very effective...`;
+                score -= 10;
+                moveReasoning = `${move.name} might not be optimal against ${playerType}...`;
             } else {
-                moveReasoning = `${move.name} should deal solid damage.`;
+                moveReasoning = `${move.name} should provide reliable performance.`;
             }
 
-            // Health consideration
+            // Health-based strategy
             const aiHealthPercent = state.aiFighter.health / state.aiFighter.maxHealth;
             const playerHealthPercent = state.playerFighter.health / state.playerFighter.maxHealth;
 
-            if (aiHealthPercent < 0.3 && move.category === 'status') {
-                score += 20;
-                moveReasoning = `I need to use ${move.name} for strategic advantage!`;
-            }
-
-            if (playerHealthPercent < 0.3 && move.power && move.power > 80) {
+            // If AI is low on health, prioritize powerful moves
+            if (aiHealthPercent < 0.4 && movePower > 70) {
                 score += 25;
-                moveReasoning = `Time to finish with ${move.name}!`;
+                moveReasoning = `Desperate situation - going for high impact with ${move.name}!`;
             }
 
-            // PP efficiency - don't waste high PP moves early
+            // If player is low, try to finish them
+            if (playerHealthPercent < 0.3 && movePower > 60) {
+                score += 30;
+                moveReasoning = `Opportunity to finish with ${move.name}!`;
+            }
+
+            // PP management - don't waste powerful moves too early
             const pp = state.aiPP[move.name] || 0;
             const maxPP = move.pp;
             const ppRatio = pp / maxPP;
 
-            if (ppRatio < 0.3 && move.power && move.power > 90) {
-                score -= 10; // Save powerful moves
+            if (state.turn < 4 && ppRatio < 0.4 && movePower > 80) {
+                score -= 15; // Save powerful moves for later
             }
 
+            // Accuracy consideration
+            score += (move.accuracy - 85) * 0.2;
+
             // Avoid repetition
-            if (state.moveHistory.slice(-2).includes(move.name)) {
-                score -= 10;
-                moveReasoning = `Maybe I should try something different than ${move.name}...`;
+            const recentMoves = this.decisionHistory.slice(-3);
+            if (recentMoves.some(h => h.includes(move.name))) {
+                score -= 8;
+                moveReasoning = `Maybe I should vary my strategy from ${move.name}...`;
             }
 
             if (score > bestScore) {
@@ -163,39 +208,38 @@ export class CombatAI {
 
         return {
             move: bestMove,
-            reasoning: reasoning || `${bestMove.name} seems like a solid tactical choice.`,
-            confidence: Math.min(0.9, bestScore / 100 + 0.4) // 40-90% confidence
+            reasoning: reasoning || `${bestMove.name} appears to be the most strategic choice.`,
+            confidence: Math.min(0.85, Math.max(0.4, bestScore / 100 + 0.4))
         };
     }
 
     private selectHardMove(state: CombatState, availableMoves: Move[]): AIDecision {
         // Hard AI: Advanced strategy with prediction and optimization
         let bestMove = availableMoves[0];
-        let bestScore = 0;
+        let bestScore = -1;
         let reasoning = "";
 
         for (const move of availableMoves) {
             let score = 0;
             let moveReasoning = "";
 
-            // Advanced power calculation with accuracy
+            // Advanced damage calculation with accuracy
             const expectedDamage = (move.power || 0) * (move.accuracy / 100);
-            score += expectedDamage * 0.4;
+            score += expectedDamage * 0.5;
 
             // Advanced type effectiveness
             const aiType = ALGORITHM_TYPES[state.aiFighter.name];
             const playerType = ALGORITHM_TYPES[state.playerFighter.name];
             const typeMultiplier = getTypeMultiplier(aiType, playerType);
 
-            score += (typeMultiplier - 1) * 50;
+            score += (typeMultiplier - 1) * 60;
 
-            // Predict player patterns
-            const playerMovePattern = this.analyzePlayerPattern(state);
-            if (playerMovePattern.predictedMove) {
-                // Counter-strategy
-                if (move.category === 'status' && playerMovePattern.predictedMove.category === 'physical') {
-                    score += 15;
-                    moveReasoning = `Predicting physical attack - using ${move.name} for counter-strategy!`;
+            // Predictive analysis
+            const playerPattern = this.analyzePlayerPattern(state);
+            if (playerPattern.predictedMove) {
+                if (this.countersMove(move, playerPattern.predictedMove)) {
+                    score += 20;
+                    moveReasoning = `Pattern analysis suggests ${move.name} counters expected ${playerPattern.predictedMove.name}!`;
                 }
             }
 
@@ -204,35 +248,40 @@ export class CombatAI {
             const playerHealthPercent = state.playerFighter.health / state.playerFighter.maxHealth;
             const healthDifference = aiHealthPercent - playerHealthPercent;
 
-            // If ahead, play conservatively
-            if (healthDifference > 0.2 && move.category === 'status') {
-                score += 20;
-                moveReasoning = `I'm ahead - using ${move.name} for strategic control!`;
+            // Risk assessment
+            if (healthDifference > 0.25) {
+                // Ahead - play conservatively
+                if (move.category === 'status') {
+                    score += 15;
+                    moveReasoning = `Maintaining advantage with strategic ${move.name}!`;
+                }
+            } else if (healthDifference < -0.25) {
+                // Behind - aggressive play
+                if (move.power && move.power > 80) {
+                    score += 35;
+                    moveReasoning = `Aggressive comeback strategy with ${move.name}!`;
+                }
             }
 
-            // If behind, go aggressive
-            if (healthDifference < -0.2 && move.power && move.power > 85) {
-                score += 30;
-                moveReasoning = `I need to turn this around with ${move.name}!`;
-            }
-
-            // PP optimization - resource management
-            const pp = state.aiPP[move.name] || 0;
-            const maxPP = move.pp;
-            const ppEfficiency = this.calculatePPEfficiency(move, pp, maxPP, state.turn);
+            // Resource optimization
+            const ppEfficiency = this.calculatePPEfficiency(move, state.aiPP[move.name] || 0, move.pp, state.turn);
             score += ppEfficiency;
 
-            // Move synergy - combo potential
-            const lastAIMove = state.moveHistory.slice(-2)[1]; // AI's last move
+            // Combo potential
+            const lastAIMove = this.getLastAIMove(state.moveHistory);
             if (lastAIMove && this.hasMoveSynergy(lastAIMove, move.name)) {
-                score += 15;
-                moveReasoning = `${move.name} synergizes perfectly with my previous strategy!`;
+                score += 18;
+                moveReasoning = `${move.name} creates powerful synergy with previous strategy!`;
             }
 
-            // Endgame calculation
-            if (state.turn > 8) {
+            // Endgame optimization
+            if (state.turn > 6) {
                 score += this.calculateEndgameValue(move, state);
             }
+
+            // Mathematical optimization
+            const expectedUtility = this.calculateMoveUtility(move, state);
+            score += expectedUtility;
 
             if (score > bestScore) {
                 bestScore = score;
@@ -243,25 +292,26 @@ export class CombatAI {
 
         // Add mathematical reasoning for hard AI
         if (!reasoning) {
-            const expectedValue = bestScore.toFixed(1);
-            reasoning = `Optimal decision: ${bestMove.name} (EV: ${expectedValue}). Calculated based on type effectiveness, resource management, and strategic positioning.`;
+            const expectedValue = bestScore.toFixed(2);
+            const confidence = Math.min(95, bestScore + 60);
+            reasoning = `Optimal choice: ${bestMove.name} (EV: ${expectedValue}, Confidence: ${confidence}%). Analysis includes type effectiveness, resource management, and strategic positioning.`;
         }
 
         return {
             move: bestMove,
             reasoning: reasoning,
-            confidence: Math.min(0.95, bestScore / 100 + 0.6) // 60-95% confidence
+            confidence: Math.min(0.95, Math.max(0.6, bestScore / 120 + 0.6))
         };
     }
 
     private analyzePlayerPattern(state: CombatState): { predictedMove?: Move; confidence: number } {
-        const playerMoves = state.moveHistory.filter((_, index) => index % 2 === 0); // Player moves are even indices
+        const playerMoves = state.moveHistory.filter((_, index) => index % 2 === 0);
 
         if (playerMoves.length < 2) {
             return { confidence: 0 };
         }
 
-        // Simple pattern recognition - more sophisticated algorithms could be implemented
+        // Simple pattern recognition
         const lastMove = playerMoves[playerMoves.length - 1];
         const secondLastMove = playerMoves[playerMoves.length - 2];
 
@@ -271,20 +321,33 @@ export class CombatAI {
             const thirdLastMove = playerMoves[playerMoves.length - 3];
 
             if (lastMove === thirdLastMove && secondLastMove === fourthLastMove) {
-                // Alternating pattern detected
                 const predictedMoveName = secondLastMove;
                 const predictedMove = state.playerMoves.find(m => m.name === predictedMoveName);
-                return { predictedMove, confidence: 0.7 };
+                return { predictedMove, confidence: 0.75 };
             }
         }
 
         // Check for repetition pattern
         if (lastMove === secondLastMove) {
             const predictedMove = state.playerMoves.find(m => m.name === lastMove);
-            return { predictedMove, confidence: 0.5 };
+            return { predictedMove, confidence: 0.6 };
         }
 
-        return { confidence: 0.2 };
+        return { confidence: 0.25 };
+    }
+
+    private countersMove(myMove: Move, theirMove: Move): boolean {
+        // Define counter relationships
+        const counters: Record<string, string[]> = {
+            'Dropout Defense': ['Overfitting', 'High Variance'],
+            'Bootstrap Assault': ['Underfitting', 'Bias'],
+            'Kernel Trick': ['Linear Models', 'Simple Patterns'],
+            'Ensemble Attack': ['Single Model', 'Low Accuracy']
+        };
+
+        return counters[myMove.name]?.some(counter =>
+            theirMove.name.includes(counter) || theirMove.description.includes(counter)
+        ) || false;
     }
 
     private calculatePPEfficiency(move: Move, currentPP: number, maxPP: number, turn: number): number {
@@ -292,16 +355,26 @@ export class CombatAI {
         const powerToPPRatio = (move.power || 0) / maxPP;
 
         // Early game: conserve high-power, low-PP moves
-        if (turn < 5 && ppRatio < 0.5 && move.power && move.power > 90) {
-            return -5;
+        if (turn < 4 && ppRatio < 0.4 && move.power && move.power > 85) {
+            return -8;
         }
 
         // Late game: use remaining PP efficiently
-        if (turn > 10) {
-            return ppRatio * 10;
+        if (turn > 8) {
+            return ppRatio * 12;
         }
 
-        return powerToPPRatio;
+        return powerToPPRatio * 0.5;
+    }
+
+    private getLastAIMove(moveHistory: string[]): string | null {
+        // AI moves are at odd indices (1, 3, 5, ...)
+        for (let i = moveHistory.length - 1; i >= 0; i--) {
+            if (i % 2 === 1) { // Odd index = AI move
+                return moveHistory[i];
+            }
+        }
+        return null;
     }
 
     private hasMoveSynergy(lastMove: string, currentMove: string): boolean {
@@ -310,7 +383,9 @@ export class CombatAI {
             'Out-of-Bag Counter': ['Bootstrap Assault', 'Tree Vote'],
             'Centroid Shift': ['Cluster Bomb', 'Convergence Lock'],
             'Prior Strike': ['Likelihood Blast', 'Posterior Slam'],
-            'Weak Learner Swarm': ['Residual Correction', 'AdaBoost Combo']
+            'Weak Learner Swarm': ['Residual Correction', 'AdaBoost Combo'],
+            'Feature Bagging': ['Bootstrap Assault', 'Tree Vote'],
+            'Gradient Descent': ['Backpropagation Blast', 'Activation Storm']
         };
 
         return synergies[lastMove]?.includes(currentMove) || false;
@@ -320,39 +395,87 @@ export class CombatAI {
         const aiHealthPercent = state.aiFighter.health / state.aiFighter.maxHealth;
         const playerHealthPercent = state.playerFighter.health / state.playerFighter.maxHealth;
 
-        // If either player is low on health, prioritize finishing moves
-        if (playerHealthPercent < 0.3 && move.power && move.power > 80) {
-            return 25; // Go for the finish
+        // If player is very low on health, prioritize finishing moves
+        if (playerHealthPercent < 0.25 && move.power && move.power > 70) {
+            return 30; // High priority for finish
         }
 
+        // If AI is low on health, avoid status moves
         if (aiHealthPercent < 0.3 && move.category === 'status') {
-            return -10; // Don't waste turns on status when low
+            return -15; // Don't waste time on status when critical
+        }
+
+        // If both are low, prioritize accuracy
+        if (aiHealthPercent < 0.4 && playerHealthPercent < 0.4) {
+            return (move.accuracy - 85) * 0.3;
         }
 
         return 0;
+    }
+
+    private calculateMoveUtility(move: Move, state: CombatState): number {
+        let utility = 0;
+
+        // Base utility from power and accuracy
+        const expectedDamage = (move.power || 0) * (move.accuracy / 100);
+        utility += expectedDamage * 0.1;
+
+        // Utility from type effectiveness
+        const aiType = ALGORITHM_TYPES[state.aiFighter.name];
+        const playerType = ALGORITHM_TYPES[state.playerFighter.name];
+        const typeMultiplier = getTypeMultiplier(aiType, playerType);
+        utility += (typeMultiplier - 1) * 15;
+
+        // PP efficiency utility
+        const pp = state.aiPP[move.name] || 0;
+        const ppEfficiency = pp / move.pp;
+        utility += ppEfficiency * 5;
+
+        // Category utility based on situation
+        const aiHealthPercent = state.aiFighter.health / state.aiFighter.maxHealth;
+
+        if (move.category === 'physical' && aiHealthPercent > 0.6) {
+            utility += 3; // Good when healthy
+        } else if (move.category === 'special' && aiHealthPercent < 0.4) {
+            utility += 5; // Special moves when desperate
+        } else if (move.category === 'status' && aiHealthPercent > 0.7) {
+            utility += 4; // Status moves when ahead
+        }
+
+        return utility;
     }
 
     // Get AI commentary for educational purposes
     getCommentary(decision: AIDecision, state: CombatState): string {
         const commentaries = {
             easy: [
-                "I'm still learning, but I think this might work!",
-                "Let's see what happens with this approach!",
-                "Trial and error is part of the learning process!"
+                "I'm still learning the ropes of ML combat!",
+                "Let's see what this algorithm can do!",
+                "Trial and error is how we learn!"
             ],
             normal: [
-                `Based on the data, ${decision.move.name} should be effective here.`,
-                `My analysis suggests this is the optimal choice.`,
-                `Considering the type matchup, this seems strategic.`
+                `My analysis indicates ${decision.move.name} has strong potential here.`,
+                `Based on the data patterns, this should be effective.`,
+                `Considering the algorithmic matchup, this seems strategic.`
             ],
             hard: [
-                `After calculating expected values and analyzing patterns, ${decision.move.name} maximizes our win probability.`,
-                `This decision factors in resource management, type effectiveness, and strategic positioning.`,
-                `My neural network predicts this move has the highest success rate given current game state.`
+                `After comprehensive analysis of ${state.turn} turns of data, ${decision.move.name} maximizes expected utility.`,
+                `This decision optimizes for type effectiveness, resource allocation, and strategic positioning.`,
+                `My neural network predicts ${(decision.confidence * 100).toFixed(1)}% success probability for this strategy.`
             ]
         };
 
         const options = commentaries[this.level];
         return options[Math.floor(Math.random() * options.length)];
+    }
+
+    // Get decision history for debugging
+    getDecisionHistory(): string[] {
+        return [...this.decisionHistory];
+    }
+
+    // Reset for new battle
+    reset(): void {
+        this.decisionHistory = [];
     }
 }
